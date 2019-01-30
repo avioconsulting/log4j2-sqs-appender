@@ -37,7 +37,7 @@ Use this dependency in your Java/Mule Applications
          maxBatchSize="5" 
          maxInflightOutboundBatches="5" 
          queueName="<your AWS SQS queue name>">
-        <PatternLayout pattern="%-5p %d [%t] %c: %m%n"/>
+        <PatternLayout pattern="%-5p %d [%t] %c: ##MESSAGE## %m%n"/>
     </SQS>
 </Appenders>
 ```
