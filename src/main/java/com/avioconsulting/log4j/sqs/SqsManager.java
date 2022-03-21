@@ -21,11 +21,10 @@ import java.nio.charset.Charset;
 import java.nio.charset.CharsetEncoder;
 import java.nio.charset.CoderResult;
 import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.List;
 import java.util.Objects;
+import java.util.UUID;
 
 public class SqsManager extends AbstractManager {
     private final Configuration configuration;
@@ -90,15 +89,14 @@ public class SqsManager extends AbstractManager {
             if (messageLength > this.maxMessageBytes && this.largeMessagesEnabled) {
                 logger.debug("Splitting large message");
                 // Generate Message Hash to use as the group ID
-                MessageDigest digest = MessageDigest.getInstance("SHA-256");
-                String messageHash = BytesToHex(digest.digest(message.getBytes(StandardCharsets.UTF_8)));
-                logger.debug("Large Message Hash: " + messageHash);
+                UUID uuid = UUID.randomUUID();
+                logger.debug("Large Message UUID: " + uuid);
                 //String base64Message = Base64.getEncoder().encodeToString(message.getBytes(StandardCharsets.UTF_8));
-                String[] splitMessage = SplitStringByByteLength(message, "UTF-8", maxMessageBytes);
+                String[] splitMessage = splitStringByByteLength(message, "UTF-8", maxMessageBytes);
                 for (int i = 0; i < splitMessage.length; i++) {
                     logger.debug(String.format("Sending message %d of %d", i + 1, splitMessage.length));
-                    SendMessageRequest request = new SendMessageRequest(this.largeMessageQueueUrl, String.format("currentPart=%d|totalParts=%d|hash=%s|message=%s", i + 1, splitMessage.length, messageHash, splitMessage[i]));
-                    request.setMessageGroupId(messageHash);
+                    SendMessageRequest request = new SendMessageRequest(this.largeMessageQueueUrl, String.format("currentPart=%d|totalParts=%d|uuid=%s|message=%s", i + 1, splitMessage.length, uuid, splitMessage[i]));
+                    request.setMessageGroupId(uuid.toString());
                     this.getClient().sendMessageAsync(request);
                 }
             } else {
@@ -139,24 +137,6 @@ public class SqsManager extends AbstractManager {
     }
 
     /**
-     * Convert a byte array into a String of Hex characters. Using this so we don't havce to add another dependency.
-     *
-     * @param hash  the byte array represending the hash value
-     * @return Hex String
-     */
-    private static String BytesToHex(final byte[] hash) {
-        StringBuilder hexString = new StringBuilder(2 * hash.length);
-        for (int i = 0; i < hash.length; i++) {
-            String hex = Integer.toHexString(0xff & hash[i]);
-            if (hex.length() == 1) {
-                hexString.append('0');
-            }
-            hexString.append(hex);
-        }
-        return hexString.toString();
-    }
-
-    /**
      * Split the input string into a list of strings, each with a maximum memory size of maxsize bytes.
      *
      * @param src the source string
@@ -164,7 +144,7 @@ public class SqsManager extends AbstractManager {
      * @param maxsize the maximum size of the string parts in bytes
      * @return an array of strings, each with a maximum length of maxsize bytes
      */
-    private static String[] SplitStringByByteLength(final String src, final String encoding, final int maxsize) {
+    private static String[] splitStringByByteLength(final String src, final String encoding, final int maxsize) {
         Charset cs = Charset.forName(encoding);
         CharsetEncoder coder = cs.newEncoder();
         ByteBuffer out = ByteBuffer.allocate(maxsize);  // output buffer of required size
