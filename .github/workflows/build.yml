@@ -50,23 +50,6 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           files: ./**/surefire-reports/*.xml
 
-      - name: Create settings xml
-        uses: whelk-io/maven-settings-xml-action@v20
-        with:
-          servers: >
-            [
-              {
-                "id": "github",
-                "username": "${{secrets.GIT_USER}}",
-                "password": "${{secrets.GIT_TOKEN}}"
-              },
-              {
-                "id": "anypoint-exchange",
-                "username": "~~~Token~~~",
-                "password": "${token}"
-              }
-            ]
-
       - name: Publish to Maven Central
         id: publish-to-maven-central
         if: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main'}}

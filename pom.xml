@@ -18,7 +18,6 @@
         <maven.compiler.target>1.8</maven.compiler.target>
         <aws.sdk.version>1.12.181</aws.sdk.version>
         <log4j.version>2.17.2</log4j.version>
-        <GPG_PASSPHRASE>something</GPG_PASSPHRASE>
         <nexus.url>https://oss.sonatype.org</nexus.url>
     </properties>
 
@@ -182,8 +181,6 @@
             </activation>
             <properties>
                 <gpg.executable>gpg</gpg.executable>
-                <!--Set Passphrase to this env variable-->
-                <gpg.passphrase>${GPG_PASSPHRASE}</gpg.passphrase>
             </properties>
             <build>
                 <plugins>
