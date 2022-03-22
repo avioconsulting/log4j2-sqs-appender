@@ -86,18 +86,24 @@ public class SqsManager extends AbstractManager {
             logger.debug("Message length: " + messageLength);
 
             // We only need to split the message if it's larger than the maximum length
-            if (messageLength > this.maxMessageBytes && this.largeMessagesEnabled) {
-                logger.debug("Splitting large message");
-                // Generate Message Hash to use as the group ID
-                UUID uuid = UUID.randomUUID();
-                logger.debug("Large Message UUID: " + uuid);
-                //String base64Message = Base64.getEncoder().encodeToString(message.getBytes(StandardCharsets.UTF_8));
-                String[] splitMessage = splitStringByByteLength(message, "UTF-8", maxMessageBytes);
-                for (int i = 0; i < splitMessage.length; i++) {
-                    logger.debug(String.format("Sending message %d of %d", i + 1, splitMessage.length));
-                    SendMessageRequest request = new SendMessageRequest(this.largeMessageQueueUrl, String.format("currentPart=%d|totalParts=%d|uuid=%s|message=%s", i + 1, splitMessage.length, uuid, splitMessage[i]));
-                    request.setMessageGroupId(uuid.toString());
-                    this.getClient().sendMessageAsync(request);
+            if (messageLength > this.maxMessageBytes) {
+                if (!this.largeMessagesEnabled) {
+                    logger.debug("Sending truncated message");
+                    SendMessageRequest request = new SendMessageRequest(this.queueUrl, truncateStringByByteLength(message, "UTF-8", this.maxMessageBytes));
+                    this.client.sendMessageAsync(request);
+                } else {
+                    logger.debug("Splitting large message");
+                    // Generate Message Hash to use as the group ID
+                    UUID uuid = UUID.randomUUID();
+                    logger.debug("Large Message UUID: " + uuid);
+                    //String base64Message = Base64.getEncoder().encodeToString(message.getBytes(StandardCharsets.UTF_8));
+                    String[] splitMessage = splitStringByByteLength(message, "UTF-8", maxMessageBytes);
+                    for (int i = 0; i < splitMessage.length; i++) {
+                        logger.debug(String.format("Sending message %d of %d", i + 1, splitMessage.length));
+                        SendMessageRequest request = new SendMessageRequest(this.largeMessageQueueUrl, String.format("currentPart=%d|totalParts=%d|uuid=%s|message=%s", i + 1, splitMessage.length, uuid, splitMessage[i]));
+                        request.setMessageGroupId(uuid.toString());
+                        this.getClient().sendMessageAsync(request);
+                    }
                 }
             } else {
                 SendMessageRequest request = new SendMessageRequest(this.queueUrl, message);
@@ -144,7 +150,7 @@ public class SqsManager extends AbstractManager {
      * @param maxsize the maximum size of the string parts in bytes
      * @return an array of strings, each with a maximum length of maxsize bytes
      */
-    private static String[] splitStringByByteLength(final String src, final String encoding, final int maxsize) {
+    protected static String[] splitStringByByteLength(final String src, final String encoding, final int maxsize) {
         Charset cs = Charset.forName(encoding);
         CharsetEncoder coder = cs.newEncoder();
         ByteBuffer out = ByteBuffer.allocate(maxsize);  // output buffer of required size
@@ -163,5 +169,23 @@ public class SqsManager extends AbstractManager {
             }
         }
         return ss.toArray(new String[0]);
+    }
+
+    /**
+     * Truncate a string to a specific number of bytes.
+     *
+     * @param src the string to be truncated
+     * @param encoding the character encoding to use for the truncated string
+     * @param maxsize the maximum size of the string in bytes
+     * @return the truncated string
+     */
+    protected static String truncateStringByByteLength(final String src, final String encoding, final int maxsize) {
+        Charset cs = Charset.forName(encoding);
+        CharsetEncoder coder = cs.newEncoder();
+        ByteBuffer out = ByteBuffer.allocate(maxsize);
+        CharBuffer in = CharBuffer.wrap(src);
+        coder.encode(in, out, true);
+        int pos = src.length() - in.length();
+        return src.substring(0, pos);
     }
 }

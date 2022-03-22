@@ -18,6 +18,7 @@
         <maven.compiler.target>1.8</maven.compiler.target>
         <aws.sdk.version>1.12.181</aws.sdk.version>
         <log4j.version>2.17.2</log4j.version>
+        <junit.version>4.13.2</junit.version>
         <nexus.url>https://oss.sonatype.org</nexus.url>
     </properties>
 
@@ -75,6 +76,12 @@
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-core</artifactId>
             <version>${log4j.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>${junit.version}</version>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 
