@@ -4,6 +4,8 @@ import java.io.Serializable;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.*;
 import org.apache.logging.log4j.core.appender.AbstractAppender;
 import org.apache.logging.log4j.core.config.plugins.*;
@@ -32,6 +34,9 @@ class SqsAppender extends AbstractAppender {
 		private String queueName;
 
 		@PluginBuilderAttribute
+		private String largeMessageQueueName;
+
+		@PluginBuilderAttribute
 		private Integer maxBatchOpenMs;
 
 		@PluginBuilderAttribute
@@ -40,11 +45,19 @@ class SqsAppender extends AbstractAppender {
 		@PluginBuilderAttribute
 		private Integer maxInflightOutboundBatches;
 
+		@PluginBuilderAttribute
+		private Integer maxMessageBytes;
+
+		@PluginBuilderAttribute
+		private Boolean largeMessagesEnabled;
+
+		private static final Logger logger = LogManager.getLogger();
+
 		@Override
 		public SqsAppender build() {
-			System.out.println("Initializing SQS appender");
+			logger.debug("Initializing SQS appender");
 			final SqsManager manager = new SqsManager(getConfiguration(), getConfiguration().getLoggerContext(),
-					getName(), awsRegion, awsAccessKey, awsSecretKey, queueName, maxBatchOpenMs, maxBatchSize, maxInflightOutboundBatches);
+					getName(), awsRegion, awsAccessKey, awsSecretKey, queueName, largeMessageQueueName, maxBatchOpenMs, maxBatchSize, maxInflightOutboundBatches, maxMessageBytes, largeMessagesEnabled);
 			return new SqsAppender(getName(), getLayout(), getFilter(), isIgnoreExceptions(), manager);
 		}
 
@@ -64,6 +77,10 @@ class SqsAppender extends AbstractAppender {
 			return queueName;
 		}
 
+		public String getLargeMessageQueueName() {
+			return largeMessageQueueName;
+		}
+
 		public Integer getMaxBatchOpenMs() {
 			return maxBatchOpenMs;
 		}
@@ -74,6 +91,14 @@ class SqsAppender extends AbstractAppender {
 
 		public Integer getMaxInflightOutboundBatches() {
 			return maxInflightOutboundBatches;
+		}
+
+		public Integer getMaxMessageBytes() {
+			return maxMessageBytes;
+		}
+
+		public Boolean getLargeMessagesEnabled() {
+			return largeMessagesEnabled;
 		}
 
 		public B setAwsAccessKey(final String awsAccessKey) {
@@ -96,6 +121,11 @@ class SqsAppender extends AbstractAppender {
 			return asBuilder();
 		}
 
+		public B setLargeMessageQueueName(final String largeMessageQueueName) {
+			this.largeMessageQueueName = largeMessageQueueName;
+			return asBuilder();
+		}
+
 		public B setMaxBatchOpenMs(final Integer maxBatchOpenMs) {
 			this.maxBatchOpenMs = maxBatchOpenMs;
 			return asBuilder();
@@ -108,6 +138,16 @@ class SqsAppender extends AbstractAppender {
 
 		public B setMaxInflightOutboundBatches(final Integer maxInflightOutboundBatches) {
 			this.maxInflightOutboundBatches = maxInflightOutboundBatches;
+			return asBuilder();
+		}
+
+		public B setMaxMessageBytes(final Integer maxMessageBytes) {
+			this.maxMessageBytes = maxMessageBytes;
+			return asBuilder();
+		}
+
+		public B setLargeMessagesEnabled(final Boolean largeMessagesEnabled) {
+			this.largeMessagesEnabled = largeMessagesEnabled;
 			return asBuilder();
 		}
 	}
