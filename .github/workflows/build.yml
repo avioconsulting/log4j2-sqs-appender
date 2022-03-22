@@ -24,6 +24,11 @@ jobs:
           distribution: adopt-hotspot
           java-version: 8
           cache: maven
+          server-id: ossrh
+          sever-username: OSSRH_USERNAME
+          server-password: OSSRH_PASSWORD
+          gpg-private-key: ${{ secrets.MAVEN_GPG_PRIVATE_KEY }}
+          gpg-passphrase:  MAVEN_GPG_PASSPHRASE
 
       - name: Set Version
         id: set-version
@@ -62,14 +67,14 @@ jobs:
               }
             ]
 
-      - name: Get Exchange Token
-        id: get-token
+      - name: Publish to Maven Central
+        id: publish-to-maven-central
         if: ${{ !contains(steps.set-version.outputs.version, 'SNAPSHOT') && github.event_name != 'pull_request' && github.ref == 'refs/heads/main'}}
-        run: |
-          echo ::set-output name=token::$(curl --location --request POST 'https://anypoint.mulesoft.com/accounts/api/v2/oauth2/token' --header 'Content-Type: application/x-www-form-urlencoded' --data-urlencode 'client_id=${{secrets.ANYPOINT_EXCHANGE_CLIENT_ID}}' --data-urlencode 'client_secret=${{secrets.ANYPOINT_EXCHANGE_CLIENT_SECRET}}' --data-urlencode 'grant_type=client_credentials')
-      - name: Publish Exchange Artifact
-        if: ${{ !contains(steps.set-version.outputs.version, 'SNAPSHOT') && github.event_name != 'pull_request' && github.ref == 'refs/heads/main'}}
-        run: ./deploy-to-exchange.sh ${{ secrets.ANYPOINT_ORG_ID }} ${{ fromJson(steps.get-token.outputs.token).access_token }}
+        run: ./mvnw clean deploy -Drelease=true
+        env:
+          OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
+          OSSRH_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
+          MAVEN_GPG_PASSPHRASE: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
 
       - name: Perform Release
         if: ${{ !contains(steps.set-version.outputs.version, 'SNAPSHOT') && github.event_name != 'pull_request' && github.ref == 'refs/heads/main'}}
