@@ -69,7 +69,7 @@ jobs:
 
       - name: Publish to Maven Central
         id: publish-to-maven-central
-        if: ${{ !contains(steps.set-version.outputs.version, 'SNAPSHOT') && github.event_name != 'pull_request' && github.ref == 'refs/heads/main'}}
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'}}
         run: ./mvnw clean deploy -Drelease=true
         env:
           OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
