@@ -87,3 +87,7 @@ Example with all possible configurations:
 
 When `largeMessagesEnabled` is true, messages larger than `maxMessageBytes` will be split into multiple SQS messages and placed on a FIFO queue with the same group ID value (the uuid) so they are guaranteed to be processed in order. The SQS messages will need to be accumulated so the log message can be reconstructed.
 The message format looks like this: `currentPart=1|totalParts=5|uuid=8744fe2c-cbea-4e49-8b81-0d7076899a48|message="{\"timeMillis\":1647825592778,\"thread\":\"[MuleRuntime].uber.09: [sqs-test].logFilesFlow.CPU_LITE @5d97440f\",\"level\":\"INFO\",\"loggerName\":\"com.avioconsulting.api\",\"message\":{\"timestamp\":\"2022-03-21T01:19:52.776Z\",\"appName\":\"sqs-test\",\"appVersion\":\"1.0.0\",\"correlationId\":\"0295a030-a8b5-11ec-95cb-f01898a624f3\",\"payload\":\"{\\n  \\\"filePath\\\": \\\"/docs/samplePayload.json\\\"\\n}\"},\"endOfBatch\":true,\"loggerFqcn\":\"org.apache.logging.log4j.spi.AbstractLogger\",\"contextMap\":{\"correlationId\":\"0295a030-a8b5-11ec-95cb-f01898a624f3\",\"processorPath\":\"logFilesFlow/processors/0/processors/0\"},\"threadId\":58,\"threadPriority\":5,\"timestamp\":\"2022-03-20T20:19:52.778-0500\",\"deployedAppName\":\"${sys:domain}\"}"`
+
+Special Event Handling
+================
+When an event message is larger than `maxMessageBytes`, it will be truncated to `maxMessageBytes` bytes before it is sent to SQS. If `largeMessagesEnabled` is true, the message will be split rather than truncated.
