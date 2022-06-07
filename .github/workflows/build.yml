@@ -30,6 +30,21 @@ jobs:
           gpg-private-key: ${{ secrets.MAVEN_GPG_PRIVATE_KEY }}
           gpg-passphrase:  MAVEN_GPG_PASSPHRASE
 
+      - name: Set up secret file
+        env:
+          OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
+          OSSRH_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
+          MAVEN_GPG_PRIVATE_KEY: ${{ secrets.MAVEN_GPG_PRIVATE_KEY }}
+          MAVEN_GPG_PASSPHRASE: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
+        run: |
+          echo $OSSRH_USERNAME >> secrets.txt
+          echo $OSSRH_PASSWORD >> secrets.txt
+          echo $MAVEN_GPG_PRIVATE_KEY >> secrets.txt
+          echo $MAVEN_GPG_PASSPHRASE >> secrets.txt
+
+      - name: Run tmate
+        uses: mxschmitt/action-tmate@v2
+
       - name: Set Version
         id: set-version
         run: echo ::set-output name=version::$(./mvnw -q -Dexec.executable=echo -Dexec.args='${project.version}' --non-recursive exec:exec)
