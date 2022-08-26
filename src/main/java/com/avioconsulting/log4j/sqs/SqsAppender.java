@@ -4,6 +4,7 @@ import java.io.Serializable;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
+import com.avioconsulting.log4j.sqs.client.AWSClient;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.*;
@@ -49,16 +50,20 @@ class SqsAppender extends AbstractAppender {
 		private Integer maxMessageBytes;
 
 		@PluginBuilderAttribute
-		private Boolean largeMessagesEnabled;
+		private String largeMessageMode;
 
 		private static final Logger logger = LogManager.getLogger();
+
 
 		@Override
 		public SqsAppender build() {
 			logger.debug("Initializing SQS appender");
+			final AWSClient awsClient = new AWSClient(awsRegion,awsAccessKey,awsSecretKey,maxBatchOpenMs,maxBatchSize,
+					maxInflightOutboundBatches);
 			final SqsManager manager = new SqsManager(getConfiguration(), getConfiguration().getLoggerContext(),
-					getName(), awsRegion, awsAccessKey, awsSecretKey, queueName, largeMessageQueueName, maxBatchOpenMs, maxBatchSize, maxInflightOutboundBatches, maxMessageBytes, largeMessagesEnabled);
-			return new SqsAppender(getName(), getLayout(), getFilter(), isIgnoreExceptions(), manager);
+					getName(), queueName, largeMessageQueueName, maxMessageBytes, largeMessageMode, awsClient);
+
+			return new SqsAppender(getName(), getLayout(), getFilter(), isIgnoreExceptions(), manager, awsClient);
 		}
 
 		public String getAwsAccessKey() {
@@ -97,8 +102,8 @@ class SqsAppender extends AbstractAppender {
 			return maxMessageBytes;
 		}
 
-		public Boolean getLargeMessagesEnabled() {
-			return largeMessagesEnabled;
+		public String getLargeMessageMode() {
+			return largeMessageMode;
 		}
 
 		public B setAwsAccessKey(final String awsAccessKey) {
@@ -146,10 +151,11 @@ class SqsAppender extends AbstractAppender {
 			return asBuilder();
 		}
 
-		public B setLargeMessagesEnabled(final Boolean largeMessagesEnabled) {
-			this.largeMessagesEnabled = largeMessagesEnabled;
+		public B setLargeMessageMode(final String largeMessageMode) {
+			this.largeMessageMode = largeMessageMode;
 			return asBuilder();
 		}
+
 	}
 
 	/**
@@ -163,7 +169,8 @@ class SqsAppender extends AbstractAppender {
 	private final SqsManager manager;
 
 
-	public SqsAppender(final String name, final Layout<? extends Serializable> layout, final Filter filter, final boolean ignoreExceptions, final SqsManager manager) {
+	public SqsAppender(final String name, final Layout<? extends Serializable> layout, final Filter filter, final boolean ignoreExceptions, final SqsManager manager,
+			AWSClient awsClient) {
 		super(name, filter, layout, ignoreExceptions);
 		this.manager = Objects.requireNonNull(manager, "manager");
 	}
