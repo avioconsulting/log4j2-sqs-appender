@@ -17,14 +17,25 @@ import java.util.List;
  */
 public class TruncateMessageProcessor implements LogEventProcessor{
 
+	private String clientName;
+
+	public TruncateMessageProcessor(String client) {
+		clientName = client;
+	}
+
 	private static final Logger logger = LogManager.getLogger(TruncateMessageProcessor.class);
 
-	@Override public List<SendMessageRequest> process(String message, Integer maxMessageSize, String queueUrl) {
+	@Override public List<SendMessageRequest> process(ProcessorAttributes processorAttributes) {
 		logger.debug("Sending truncated message");
 		SendMessageRequest sendMessageRequest = new SendMessageRequest();
-		sendMessageRequest.setMessageBody(truncateStringByByteLength(message, "UTF-8", maxMessageSize));
-		sendMessageRequest.setQueueUrl(queueUrl);
+		sendMessageRequest.setMessageBody(truncateStringByByteLength(processorAttributes.getMessage(),
+				"UTF-8", processorAttributes.getMaxMessageSize()));
+		sendMessageRequest.setQueueUrl(processorAttributes.getQueueUrl());
 		return Arrays.asList(sendMessageRequest);
+	}
+
+	@Override public String getClientName() {
+		return this.clientName;
 	}
 
 	/**

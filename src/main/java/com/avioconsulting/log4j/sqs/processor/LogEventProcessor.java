@@ -6,5 +6,7 @@ import java.util.List;
 
 public interface LogEventProcessor {
 
-	List<SendMessageRequest> process(String event, Integer messageSize,String queueUrl);
+	List<SendMessageRequest> process(ProcessorAttributes processorAttributes);
+
+	String getClientName() ;
 }

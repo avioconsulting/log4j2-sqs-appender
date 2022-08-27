@@ -4,5 +4,7 @@ public enum ProcessorType {
 		TRUNCATE,
 		FIFO,
 		S3,
-		DISCARD
+		DISCARD,
+		DEFAULT,
+		EXTENDED
 }

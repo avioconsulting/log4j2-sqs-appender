@@ -16,26 +16,36 @@ import java.util.UUID;
 /**
  *
  */
-public class FifoMessageProcessor implements LogEventProcessor{
+public class FifoMessageProcessor implements LogEventProcessor {
+
+	private String clientName;
+	public FifoMessageProcessor(String client) {
+		clientName = client;
+	}
 
 	private static final Logger logger = LogManager.getLogger(FifoMessageProcessor.class);
-	@Override public List<SendMessageRequest> process(String message, Integer messageSize, String queueUrl) {
+
+	@Override public List<SendMessageRequest> process(ProcessorAttributes processorAttributes) {
 		List<SendMessageRequest> sendMessageRequestList = new ArrayList<>();
-		//logger.debug("Fifo - Splitting large message");
+		logger.debug("Fifo - Splitting large message");
 		// Generate Message Hash to use as the group ID
 		UUID uuid = UUID.randomUUID();
-		//logger.debug("Large Message UUID: " + uuid);
-		String[] splitMessage = splitStringByByteLength(message, "UTF-8", messageSize);
+		logger.debug("Large Message UUID: {}", uuid);
+		String[] splitMessage = splitStringByByteLength(processorAttributes.getMessage(), "UTF-8", processorAttributes.getMaxMessageSize());
 
 		for (int i = 0; i < splitMessage.length; i++) {
-			//logger.debug(String.format("Sending message %d of %d", i + 1, splitMessage.length));
+			logger.debug("Sending message {} of {}", i + 1, splitMessage.length);
 			SendMessageRequest sendMessageRequest = new SendMessageRequest();
 			sendMessageRequest.setMessageBody(String.format("currentPart=%d|totalParts=%d|uuid=%s|message=%s", i + 1, splitMessage.length, uuid, splitMessage[i]));
 			sendMessageRequest.setMessageGroupId(uuid.toString());
-			sendMessageRequest.setQueueUrl(queueUrl);
+			sendMessageRequest.setQueueUrl(processorAttributes.getQueueUrl());
 			sendMessageRequestList.add(sendMessageRequest);
 		}
 		return sendMessageRequestList;
+	}
+
+	@Override public String getClientName() {
+		return this.clientName;
 	}
 
 	/**

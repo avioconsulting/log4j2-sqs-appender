@@ -4,7 +4,8 @@ import java.io.Serializable;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
-import com.avioconsulting.log4j.sqs.client.AWSClient;
+import com.avioconsulting.log4j.sqs.client.AVIOAWSClientSupplier;
+import com.avioconsulting.log4j.sqs.client.AvioAWSClientAttributes;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.*;
@@ -52,58 +53,22 @@ class SqsAppender extends AbstractAppender {
 		@PluginBuilderAttribute
 		private String largeMessageMode;
 
+		@PluginBuilderAttribute
+		private String s3BucketName;
+
 		private static final Logger logger = LogManager.getLogger();
 
 
 		@Override
 		public SqsAppender build() {
 			logger.debug("Initializing SQS appender");
-			final AWSClient awsClient = new AWSClient(awsRegion,awsAccessKey,awsSecretKey,maxBatchOpenMs,maxBatchSize,
-					maxInflightOutboundBatches);
+			AvioAWSClientAttributes attributes = new AvioAWSClientAttributes(awsRegion,awsAccessKey,awsSecretKey,
+					maxBatchOpenMs,maxBatchSize,maxInflightOutboundBatches, s3BucketName);
+			final AVIOAWSClientSupplier avioawsClientSupplier = new AVIOAWSClientSupplier(attributes);
 			final SqsManager manager = new SqsManager(getConfiguration(), getConfiguration().getLoggerContext(),
-					getName(), queueName, largeMessageQueueName, maxMessageBytes, largeMessageMode, awsClient);
+					getName(), queueName, largeMessageQueueName, maxMessageBytes, largeMessageMode, avioawsClientSupplier);
 
-			return new SqsAppender(getName(), getLayout(), getFilter(), isIgnoreExceptions(), manager, awsClient);
-		}
-
-		public String getAwsAccessKey() {
-			return awsAccessKey;
-		}
-
-		public String getAwsSecretKey() {
-			return awsSecretKey;
-		}
-
-		public String getAwsRegion() {
-			return awsRegion;
-		}
-
-		public String getQueueName() {
-			return queueName;
-		}
-
-		public String getLargeMessageQueueName() {
-			return largeMessageQueueName;
-		}
-
-		public Integer getMaxBatchOpenMs() {
-			return maxBatchOpenMs;
-		}
-
-		public Integer getMaxBatchSize() {
-			return maxBatchSize;
-		}
-
-		public Integer getMaxInflightOutboundBatches() {
-			return maxInflightOutboundBatches;
-		}
-
-		public Integer getMaxMessageBytes() {
-			return maxMessageBytes;
-		}
-
-		public String getLargeMessageMode() {
-			return largeMessageMode;
+			return new SqsAppender(getName(), getLayout(), getFilter(), isIgnoreExceptions(), manager);
 		}
 
 		public B setAwsAccessKey(final String awsAccessKey) {
@@ -169,8 +134,8 @@ class SqsAppender extends AbstractAppender {
 	private final SqsManager manager;
 
 
-	public SqsAppender(final String name, final Layout<? extends Serializable> layout, final Filter filter, final boolean ignoreExceptions, final SqsManager manager,
-			AWSClient awsClient) {
+	public SqsAppender(final String name, final Layout<? extends Serializable> layout, final Filter filter,
+			final boolean ignoreExceptions, final SqsManager manager) {
 		super(name, filter, layout, ignoreExceptions);
 		this.manager = Objects.requireNonNull(manager, "manager");
 	}
