@@ -1,9 +1,6 @@
 package com.avioconsulting.log4j.sqs;
 
-import com.amazonaws.services.sqs.model.SendMessageRequest;
-import com.avioconsulting.log4j.sqs.client.AVIOAWSClientSupplier;
-import com.avioconsulting.log4j.sqs.client.AvioAWSClient;
-import com.avioconsulting.log4j.sqs.client.AwsSQSClient;
+import com.avioconsulting.log4j.sqs.client.ConnectorClient;
 import com.avioconsulting.log4j.sqs.processor.LogEventProcessor;
 import com.avioconsulting.log4j.sqs.processor.ProcessorAttributes;
 import com.avioconsulting.log4j.sqs.processor.ProcessorType;
@@ -16,14 +13,7 @@ import org.apache.logging.log4j.core.LoggerContext;
 import org.apache.logging.log4j.core.appender.AbstractManager;
 import org.apache.logging.log4j.core.config.Configuration;
 
-import java.nio.ByteBuffer;
-import java.nio.CharBuffer;
-import java.nio.charset.Charset;
-import java.nio.charset.CharsetEncoder;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 import java.util.Objects;
 
 public class SqsManager extends AbstractManager {
@@ -31,9 +21,8 @@ public class SqsManager extends AbstractManager {
     private String queueName;
     private String largeMessageQueueName;
     private Integer maxMessageBytes;
-
     private final String largeMessageMode;
-    private AVIOAWSClientSupplier avioawsClientSupplier;
+    private ConnectorClient connectorClient;
 
     private static final Logger classLogger = LogManager.getLogger(SqsManager.class);
 
@@ -44,14 +33,14 @@ public class SqsManager extends AbstractManager {
                          final String largeMessageQueueName,
                          final Integer maxMessageBytes,
                          final String largeMessageMode,
-                         final AVIOAWSClientSupplier avioawsClientSupplier) {
+                         final ConnectorClient connectorClient) {
         super(loggerContext, name);
         this.configuration = Objects.requireNonNull(configuration);
         this.queueName = queueName;
         this.largeMessageQueueName = largeMessageQueueName == null ? queueName.concat(".fifo") : largeMessageQueueName;
         this.maxMessageBytes = maxMessageBytes == null ? 250000 : maxMessageBytes;
         this.largeMessageMode = largeMessageMode;
-        this.avioawsClientSupplier = avioawsClientSupplier;
+        this.connectorClient = connectorClient;
 
     }
 
@@ -67,33 +56,24 @@ public class SqsManager extends AbstractManager {
         String message = new String(layout.toByteArray(event), StandardCharsets.UTF_8);
         int messageLength = message.getBytes().length;
         classLogger.debug("Message length: {}", messageLength);
-        String queueName = this.queueName;
+        String queueUrl = connectorClient.getQueueURL(queueName);
+
         if(ProcessorType.FIFO.name().equals(largeMessageMode)){
-            queueName = this.largeMessageQueueName;
+            queueUrl = connectorClient.getLargeQueueUrl(largeMessageQueueName);
         }
 
         if(messageLength <= maxMessageBytes ){
-            //DefaultMessageProcessor
-            sendMessageList(ProcessorType.DEFAULT.name(),message,queueName,maxMessageBytes);
+            sendMessageList(ProcessorType.DEFAULT.name(),message,queueUrl,maxMessageBytes);
         }else {
-            sendMessageList(largeMessageMode,message,queueName,maxMessageBytes);
+            sendMessageList(largeMessageMode,message,queueUrl,maxMessageBytes);
         }
 
     }
 
-
-    private void sendMessageList(String processorType, String message, String queueName, Integer maxMessageBytes) {
-
+    private void sendMessageList(String processorType, String message, String queueUrl, Integer maxMessageBytes) {
         LogEventProcessor processor = ProcessorSupplier.selectProcessor(processorType);
-        AvioAWSClient awsClient = avioawsClientSupplier.selectClient(processor.getClientName());
-        String queueUrl = awsClient.getQueueURL(queueName);
         ProcessorAttributes processorAttributes = new ProcessorAttributes(message,queueUrl,maxMessageBytes);
-        List<SendMessageRequest> messagesToSend = processor.process(processorAttributes);
-        awsClient.sendMessages(messagesToSend);
+        this.connectorClient.sendMessages(processor.process(processorAttributes), processorType);
     }
-
-    /*public String toString() {
-        return "[ region=" + this.awsRegion + ", maxBatchOpenMs=" + this.maxBatchOpenMs + ", maxBatchSize=" + this.maxBatchSize + ", maxInflightOutboundBatches=" + this.maxInflightOutboundBatches + " ]";
-    }*/
 
 }

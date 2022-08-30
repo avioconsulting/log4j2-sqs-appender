@@ -4,8 +4,12 @@ import java.io.Serializable;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
-import com.avioconsulting.log4j.sqs.client.AVIOAWSClientSupplier;
-import com.avioconsulting.log4j.sqs.client.AvioAWSClientAttributes;
+import com.amazonaws.auth.AWSStaticCredentialsProvider;
+import com.amazonaws.auth.BasicAWSCredentials;
+import com.amazonaws.regions.Region;
+import com.amazonaws.regions.Regions;
+import com.avioconsulting.log4j.sqs.client.ConnectorClient;
+import com.avioconsulting.log4j.sqs.client.ConnectorClientAttributes;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.*;
@@ -62,63 +66,21 @@ class SqsAppender extends AbstractAppender {
 		@Override
 		public SqsAppender build() {
 			logger.debug("Initializing SQS appender");
-			AvioAWSClientAttributes attributes = new AvioAWSClientAttributes(awsRegion,awsAccessKey,awsSecretKey,
+			AWSStaticCredentialsProvider credentialsProvider = new AWSStaticCredentialsProvider(
+					new BasicAWSCredentials(awsAccessKey, awsSecretKey));
+
+			Regions r = Regions.fromName(awsRegion);
+			Region region = Region.getRegion(r);
+
+			ConnectorClientAttributes attributes = new ConnectorClientAttributes(credentialsProvider,region,
 					maxBatchOpenMs,maxBatchSize,maxInflightOutboundBatches, s3BucketName);
-			final AVIOAWSClientSupplier avioawsClientSupplier = new AVIOAWSClientSupplier(attributes);
+
+			ConnectorClient connectorClient = new ConnectorClient(attributes);
 			final SqsManager manager = new SqsManager(getConfiguration(), getConfiguration().getLoggerContext(),
-					getName(), queueName, largeMessageQueueName, maxMessageBytes, largeMessageMode, avioawsClientSupplier);
+					getName(), queueName, largeMessageQueueName, maxMessageBytes, largeMessageMode,
+					connectorClient);
 
 			return new SqsAppender(getName(), getLayout(), getFilter(), isIgnoreExceptions(), manager);
-		}
-
-		public B setAwsAccessKey(final String awsAccessKey) {
-			this.awsAccessKey = awsAccessKey;
-			return asBuilder();
-		}
-
-		public B setAwsSecretKey(final String awsSecretKey) {
-			this.awsSecretKey = awsSecretKey;
-			return asBuilder();
-		}
-
-		public B setAwsRegion(final String awsRegion) {
-			this.awsRegion = awsRegion;
-			return asBuilder();
-		}
-
-		public B setQueueName(final String queueName) {
-			this.queueName = queueName;
-			return asBuilder();
-		}
-
-		public B setLargeMessageQueueName(final String largeMessageQueueName) {
-			this.largeMessageQueueName = largeMessageQueueName;
-			return asBuilder();
-		}
-
-		public B setMaxBatchOpenMs(final Integer maxBatchOpenMs) {
-			this.maxBatchOpenMs = maxBatchOpenMs;
-			return asBuilder();
-		}
-
-		public B setMaxBatchSize(final Integer maxBatchSize) {
-			this.maxBatchSize = maxBatchSize;
-			return asBuilder();
-		}
-
-		public B setMaxInflightOutboundBatches(final Integer maxInflightOutboundBatches) {
-			this.maxInflightOutboundBatches = maxInflightOutboundBatches;
-			return asBuilder();
-		}
-
-		public B setMaxMessageBytes(final Integer maxMessageBytes) {
-			this.maxMessageBytes = maxMessageBytes;
-			return asBuilder();
-		}
-
-		public B setLargeMessageMode(final String largeMessageMode) {
-			this.largeMessageMode = largeMessageMode;
-			return asBuilder();
 		}
 
 	}

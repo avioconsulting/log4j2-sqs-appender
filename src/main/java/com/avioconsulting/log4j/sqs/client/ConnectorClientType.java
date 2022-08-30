@@ -1,6 +1,7 @@
 package com.avioconsulting.log4j.sqs.client;
 
-public enum AWSClientType {
+public enum ConnectorClientType {
 	SQS,
-	JAVAEXTENDED
+	JAVAEXTENDED,
+	S3
 }

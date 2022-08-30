@@ -1,6 +1,7 @@
 package com.avioconsulting.log4j.sqs.processor;
 
 import com.amazonaws.services.sqs.model.SendMessageRequest;
+import com.avioconsulting.log4j.sqs.wrapper.MessageRequestWrapper;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -9,7 +10,6 @@ import java.nio.CharBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.CharsetEncoder;
 import java.util.Arrays;
-import java.util.List;
 
 /**
  * Truncates the incoming message if its length is larger than 256kb
@@ -17,25 +17,17 @@ import java.util.List;
  */
 public class TruncateMessageProcessor implements LogEventProcessor{
 
-	private String clientName;
-
-	public TruncateMessageProcessor(String client) {
-		clientName = client;
-	}
-
 	private static final Logger logger = LogManager.getLogger(TruncateMessageProcessor.class);
 
-	@Override public List<SendMessageRequest> process(ProcessorAttributes processorAttributes) {
+	@Override public MessageRequestWrapper process(ProcessorAttributes processorAttributes) {
 		logger.debug("Sending truncated message");
 		SendMessageRequest sendMessageRequest = new SendMessageRequest();
 		sendMessageRequest.setMessageBody(truncateStringByByteLength(processorAttributes.getMessage(),
 				"UTF-8", processorAttributes.getMaxMessageSize()));
 		sendMessageRequest.setQueueUrl(processorAttributes.getQueueUrl());
-		return Arrays.asList(sendMessageRequest);
-	}
-
-	@Override public String getClientName() {
-		return this.clientName;
+		MessageRequestWrapper messageRequestWrapper = new MessageRequestWrapper();
+		messageRequestWrapper.setSendMessageRequest(Arrays.asList(sendMessageRequest));
+		return messageRequestWrapper;
 	}
 
 	/**

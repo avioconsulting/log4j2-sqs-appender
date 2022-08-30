@@ -1,31 +1,25 @@
 package com.avioconsulting.log4j.sqs.processor;
 
 import com.amazonaws.services.sqs.model.SendMessageRequest;
+import com.avioconsulting.log4j.sqs.wrapper.MessageRequestWrapper;
 
 import java.util.Arrays;
-import java.util.List;
 
+/**
+ * Default implementation will create a wrapper message within an unique message element.
+ * Message will be logged without modifications.
+ * @param
+ * @return
+ */
 public class DefaultMessageProcessor implements LogEventProcessor{
 
-	private String clientName;
-	public DefaultMessageProcessor(String awsClientName) {
-		this.clientName = awsClientName;
-	}
-
-	/**
-	 * Default implementation will return a sendMessage list with a unique message element
-	 * without any modification
-	 * @param processorAttributes
-	 * @return
-	 */
-	@Override public List<SendMessageRequest> process(ProcessorAttributes processorAttributes) {
+	@Override public MessageRequestWrapper process(ProcessorAttributes processorAttributes) {
 		SendMessageRequest sendMessageRequest = new SendMessageRequest();
 		sendMessageRequest.setMessageBody(processorAttributes.getMessage());
 		sendMessageRequest.setQueueUrl(processorAttributes.getQueueUrl());
-		return Arrays.asList(sendMessageRequest);
+		MessageRequestWrapper messageRequestWrapper = new MessageRequestWrapper();
+		messageRequestWrapper.setSendMessageRequest(Arrays.asList(sendMessageRequest));
+		return messageRequestWrapper;
 	}
 
-	@Override public String getClientName() {
-		return this.clientName;
-	}
 }

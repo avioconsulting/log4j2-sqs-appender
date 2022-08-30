@@ -1,6 +1,7 @@
 package com.avioconsulting.log4j.sqs.processor;
 
 import com.amazonaws.services.sqs.model.SendMessageRequest;
+import com.avioconsulting.log4j.sqs.wrapper.MessageRequestWrapper;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -14,24 +15,22 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- *
+ * This class creates a message object to be send using ConnectorClient. This processor
+ * breaks down a large message into small messages of same size. ConnectorClient sends each message piece
+ * to the configure .fifo queue
  */
 public class FifoMessageProcessor implements LogEventProcessor {
 
-	private String clientName;
-	public FifoMessageProcessor(String client) {
-		clientName = client;
-	}
-
 	private static final Logger logger = LogManager.getLogger(FifoMessageProcessor.class);
 
-	@Override public List<SendMessageRequest> process(ProcessorAttributes processorAttributes) {
+	@Override public MessageRequestWrapper process(ProcessorAttributes processorAttributes) {
 		List<SendMessageRequest> sendMessageRequestList = new ArrayList<>();
 		logger.debug("Fifo - Splitting large message");
 		// Generate Message Hash to use as the group ID
 		UUID uuid = UUID.randomUUID();
 		logger.debug("Large Message UUID: {}", uuid);
 		String[] splitMessage = splitStringByByteLength(processorAttributes.getMessage(), "UTF-8", processorAttributes.getMaxMessageSize());
+		MessageRequestWrapper messageRequestWrapper = new MessageRequestWrapper();
 
 		for (int i = 0; i < splitMessage.length; i++) {
 			logger.debug("Sending message {} of {}", i + 1, splitMessage.length);
@@ -40,12 +39,9 @@ public class FifoMessageProcessor implements LogEventProcessor {
 			sendMessageRequest.setMessageGroupId(uuid.toString());
 			sendMessageRequest.setQueueUrl(processorAttributes.getQueueUrl());
 			sendMessageRequestList.add(sendMessageRequest);
+			messageRequestWrapper.setSendMessageRequest(sendMessageRequestList);
 		}
-		return sendMessageRequestList;
-	}
-
-	@Override public String getClientName() {
-		return this.clientName;
+		return messageRequestWrapper;
 	}
 
 	/**

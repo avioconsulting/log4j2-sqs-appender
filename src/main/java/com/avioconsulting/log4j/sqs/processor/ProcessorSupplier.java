@@ -1,12 +1,13 @@
 package com.avioconsulting.log4j.sqs.processor;
 
-import com.avioconsulting.log4j.sqs.client.AWSClientType;
-
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Supplier;
 
+/**
+ * This supplier knows how to create Processor given a ProcessorType
+ */
 public class ProcessorSupplier {
 
 	private ProcessorSupplier() {
@@ -16,11 +17,12 @@ public class ProcessorSupplier {
 
 	static {
 		Map<String, Supplier<LogEventProcessor>> aMap = new HashMap<>();
-		aMap.put(ProcessorType.TRUNCATE.name(), ()->  new TruncateMessageProcessor(AWSClientType.SQS.name()));
-		aMap.put(ProcessorType.FIFO.name(), ()->  new FifoMessageProcessor(AWSClientType.SQS.name()));
-		aMap.put(ProcessorType.DISCARD.name(), ()->  new DiscardMessageProcessor(AWSClientType.SQS.name()));
-		aMap.put(ProcessorType.DEFAULT.name(), ()->  new DefaultMessageProcessor(AWSClientType.SQS.name()));
-		aMap.put(ProcessorType.EXTENDED.name(), ()->  new ExtendedMessageProcessor(AWSClientType.JAVAEXTENDED.name()));
+		aMap.put(ProcessorType.TRUNCATE.name(), TruncateMessageProcessor::new);
+		aMap.put(ProcessorType.FIFO.name(), FifoMessageProcessor::new);
+		aMap.put(ProcessorType.DISCARD.name(), DiscardMessageProcessor::new);
+		aMap.put(ProcessorType.DEFAULT.name(), DefaultMessageProcessor::new);
+		aMap.put(ProcessorType.EXTENDED.name(), ExtendedMessageProcessor::new);
+		aMap.put(ProcessorType.S3.name(), S3MessageProcessor::new);
 		processorsMap = Collections.unmodifiableMap(aMap);
 	}
 

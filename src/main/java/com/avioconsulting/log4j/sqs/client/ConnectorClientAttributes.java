@@ -1,36 +1,30 @@
 package com.avioconsulting.log4j.sqs.client;
 
-public class AvioAWSClientAttributes {
+import com.amazonaws.auth.AWSStaticCredentialsProvider;
+import com.amazonaws.regions.Region;
 
-	private String awsRegion;
-	private String awsAccessKey;
-	private String awsSecretKey;
+public class ConnectorClientAttributes {
+
+	private Region awsRegion;
+
 	private Integer maxBatchOpenMs ;
 	private Integer maxBatchSize;
 	private Integer maxInflightOutboundBatches;
 	private String s3BucketName;
+	private AWSStaticCredentialsProvider credentialsProvider;
 
-	public AvioAWSClientAttributes(String awsRegion, String awsAccessKey, String awsSecretKey, Integer maxBatchOpenMs,
+	public ConnectorClientAttributes(AWSStaticCredentialsProvider credentialsProvider, Region awsRegion, Integer maxBatchOpenMs,
 			Integer maxBatchSize, Integer maxInflightOutboundBatches, String s3BucketName) {
-		this.awsRegion = awsRegion;
-		this.awsAccessKey = awsAccessKey;
-		this.awsSecretKey = awsSecretKey;
+		this.credentialsProvider = credentialsProvider;
 		this.maxBatchOpenMs = maxBatchOpenMs;
 		this.maxBatchSize = maxBatchSize;
 		this.maxInflightOutboundBatches = maxInflightOutboundBatches;
 		this.s3BucketName = s3BucketName;
+		this.awsRegion = awsRegion;
 	}
 
-	public String getAwsRegion() {
+	public Region getAwsRegion() {
 		return awsRegion;
-	}
-
-	public String getAwsAccessKey() {
-		return awsAccessKey;
-	}
-
-	public String getAwsSecretKey() {
-		return awsSecretKey;
 	}
 
 	public Integer getMaxBatchOpenMs() {
@@ -47,5 +41,9 @@ public class AvioAWSClientAttributes {
 
 	public String getS3BucketName() {
 		return s3BucketName;
+	}
+
+	public AWSStaticCredentialsProvider getCredentialsProvider() {
+		return credentialsProvider;
 	}
 }
