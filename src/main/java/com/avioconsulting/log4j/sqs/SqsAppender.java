@@ -10,6 +10,8 @@ import com.amazonaws.regions.Region;
 import com.amazonaws.regions.Regions;
 import com.avioconsulting.log4j.sqs.client.ConnectorClient;
 import com.avioconsulting.log4j.sqs.client.ConnectorClientAttributes;
+import com.avioconsulting.log4j.sqs.processor.LogEventProcessor;
+import com.avioconsulting.log4j.sqs.processor.ProcessorSupplier;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.*;
@@ -66,6 +68,7 @@ class SqsAppender extends AbstractAppender {
 		@Override
 		public SqsAppender build() {
 			logger.debug("Initializing SQS appender");
+
 			AWSStaticCredentialsProvider credentialsProvider = new AWSStaticCredentialsProvider(
 					new BasicAWSCredentials(awsAccessKey, awsSecretKey));
 
@@ -75,9 +78,11 @@ class SqsAppender extends AbstractAppender {
 			ConnectorClientAttributes attributes = new ConnectorClientAttributes(credentialsProvider,region,
 					maxBatchOpenMs,maxBatchSize,maxInflightOutboundBatches, s3BucketName);
 
+			LogEventProcessor logEventProcessor = ProcessorSupplier.selectProcessor(largeMessageMode);
+
 			ConnectorClient connectorClient = new ConnectorClient(attributes);
 			final SqsManager manager = new SqsManager(getConfiguration(), getConfiguration().getLoggerContext(),
-					getName(), queueName, largeMessageQueueName, maxMessageBytes, largeMessageMode,
+					getName(), queueName, largeMessageQueueName, maxMessageBytes, largeMessageMode, s3BucketName,
 					connectorClient);
 
 			return new SqsAppender(getName(), getLayout(), getFilter(), isIgnoreExceptions(), manager);

@@ -19,6 +19,7 @@ import java.util.Objects;
 public class SqsManager extends AbstractManager {
     private final Configuration configuration;
     private String queueName;
+    private String bucketName;
     private String largeMessageQueueName;
     private Integer maxMessageBytes;
     private final String largeMessageMode;
@@ -33,10 +34,12 @@ public class SqsManager extends AbstractManager {
                          final String largeMessageQueueName,
                          final Integer maxMessageBytes,
                          final String largeMessageMode,
+                         final String bucketName,
                          final ConnectorClient connectorClient) {
         super(loggerContext, name);
         this.configuration = Objects.requireNonNull(configuration);
         this.queueName = queueName;
+        this.bucketName = bucketName;
         this.largeMessageQueueName = largeMessageQueueName == null ? queueName.concat(".fifo") : largeMessageQueueName;
         this.maxMessageBytes = maxMessageBytes == null ? 250000 : maxMessageBytes;
         this.largeMessageMode = largeMessageMode;
@@ -53,6 +56,8 @@ public class SqsManager extends AbstractManager {
     }
 
     public void send(final Layout<?> layout, final LogEvent event) {
+        LogEventProcessor logEventProcessor = ProcessorSupplier.selectProcessor(ProcessorType.DEFAULT.name());
+        String messageMode = ProcessorType.DEFAULT.name();
         String message = new String(layout.toByteArray(event), StandardCharsets.UTF_8);
         int messageLength = message.getBytes().length;
         classLogger.debug("Message length: {}", messageLength);
@@ -62,18 +67,14 @@ public class SqsManager extends AbstractManager {
             queueUrl = connectorClient.getLargeQueueUrl(largeMessageQueueName);
         }
 
-        if(messageLength <= maxMessageBytes ){
-            sendMessageList(ProcessorType.DEFAULT.name(),message,queueUrl,maxMessageBytes);
-        }else {
-            sendMessageList(largeMessageMode,message,queueUrl,maxMessageBytes);
+        if(messageLength > maxMessageBytes ){
+            logEventProcessor = ProcessorSupplier.selectProcessor(largeMessageMode);
+            messageMode = largeMessageMode;
         }
 
-    }
+        ProcessorAttributes processorAttributes = new ProcessorAttributes(message,queueUrl,maxMessageBytes, bucketName);
+        this.connectorClient.sendMessages(logEventProcessor.process(processorAttributes),messageMode);
 
-    private void sendMessageList(String processorType, String message, String queueUrl, Integer maxMessageBytes) {
-        LogEventProcessor processor = ProcessorSupplier.selectProcessor(processorType);
-        ProcessorAttributes processorAttributes = new ProcessorAttributes(message,queueUrl,maxMessageBytes);
-        this.connectorClient.sendMessages(processor.process(processorAttributes), processorType);
     }
 
 }

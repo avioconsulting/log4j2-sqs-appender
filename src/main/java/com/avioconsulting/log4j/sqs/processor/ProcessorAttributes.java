@@ -5,11 +5,13 @@ public class ProcessorAttributes {
  private String message;
  private String queueUrl ;
  private Integer maxMessageSize;
+ private String bucketName;
 
- public ProcessorAttributes(String message, String queueUrl, Integer maxMessageSize) {
+ public ProcessorAttributes(String message, String queueUrl, Integer maxMessageSize, String bucketName) {
   this.message = message;
   this.queueUrl = queueUrl;
   this.maxMessageSize = maxMessageSize;
+  this.bucketName = bucketName;
  }
 
  public String getMessage() {
@@ -24,4 +26,7 @@ public class ProcessorAttributes {
   return maxMessageSize;
  }
 
+ public String getBucketName() {
+  return bucketName;
+ }
 }

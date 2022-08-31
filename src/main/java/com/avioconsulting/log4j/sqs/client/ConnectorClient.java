@@ -49,7 +49,7 @@ public class ConnectorClient {
 		if(awsSQSExtendedClient == null) {
 			final ExtendedClientConfiguration extendedClientConfig =
 					new ExtendedClientConfiguration()
-							.withLargePayloadSupportEnabled(awsS3Client, attributes.getS3BucketName());
+							.withPayloadSupportEnabled(awsS3Client,attributes.getS3BucketName());
 			awsSQSExtendedClient =
 					new AmazonSQSExtendedClient(AmazonSQSAsyncClientBuilder.standard().
 							withRegion(String.valueOf(attributes.getAwsRegion())).

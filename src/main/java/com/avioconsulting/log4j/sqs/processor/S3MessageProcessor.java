@@ -16,12 +16,14 @@ import java.util.UUID;
  */
 public class S3MessageProcessor implements LogEventProcessor{
 
+	public static final String APPLICATION_TXT = "application/txt";
+
 	@Override public MessageRequestWrapper process(ProcessorAttributes processorAttributes) {
 		ObjectMetadata objectMetadata = new ObjectMetadata();
-		objectMetadata.setContentType("application/txt");
+		objectMetadata.setContentType(APPLICATION_TXT);
 		objectMetadata.setContentLength(processorAttributes.getMessage().length());
 		InputStream stream = new ByteArrayInputStream(processorAttributes.getMessage().getBytes(StandardCharsets.UTF_8));
-		PutObjectRequest putObjectRequest = new PutObjectRequest("sqs-extended-test-bucket", UUID.randomUUID().toString(), stream,objectMetadata);
+		PutObjectRequest putObjectRequest = new PutObjectRequest(processorAttributes.getBucketName(), UUID.randomUUID().toString(), stream,objectMetadata);
 		MessageRequestWrapper messageRequestWrapper = new MessageRequestWrapper();
 		messageRequestWrapper.setPutObjectRequest(Arrays.asList(putObjectRequest));
 		return messageRequestWrapper;
