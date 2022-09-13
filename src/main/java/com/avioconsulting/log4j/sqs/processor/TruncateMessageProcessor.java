@@ -13,7 +13,6 @@ import java.util.Arrays;
 
 /**
  * Truncates the incoming message if its length is larger than 256kb
- * @author francisco.rodriguez
  */
 public class TruncateMessageProcessor implements LogEventProcessor{
 

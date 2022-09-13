@@ -8,8 +8,6 @@ import java.util.Arrays;
 /**
  * Default implementation will create a wrapper message within an unique message element.
  * Message will be logged without modifications.
- * @param
- * @return
  */
 public class DefaultMessageProcessor implements LogEventProcessor{
 
