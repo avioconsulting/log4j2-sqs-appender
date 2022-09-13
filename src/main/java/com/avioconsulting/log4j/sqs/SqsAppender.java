@@ -4,6 +4,14 @@ import java.io.Serializable;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
+import com.amazonaws.auth.AWSStaticCredentialsProvider;
+import com.amazonaws.auth.BasicAWSCredentials;
+import com.amazonaws.regions.Region;
+import com.amazonaws.regions.Regions;
+import com.avioconsulting.log4j.sqs.client.ConnectorClient;
+import com.avioconsulting.log4j.sqs.client.ConnectorClientAttributes;
+import com.avioconsulting.log4j.sqs.processor.LogEventProcessor;
+import com.avioconsulting.log4j.sqs.processor.ProcessorSupplier;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.*;
@@ -49,107 +57,37 @@ class SqsAppender extends AbstractAppender {
 		private Integer maxMessageBytes;
 
 		@PluginBuilderAttribute
-		private Boolean largeMessagesEnabled;
+		private String largeMessageMode;
+
+		@PluginBuilderAttribute
+		private String s3BucketName;
 
 		private static final Logger logger = LogManager.getLogger();
+
 
 		@Override
 		public SqsAppender build() {
 			logger.debug("Initializing SQS appender");
+
+			AWSStaticCredentialsProvider credentialsProvider = new AWSStaticCredentialsProvider(
+					new BasicAWSCredentials(awsAccessKey, awsSecretKey));
+
+			Regions r = Regions.fromName(awsRegion);
+			Region region = Region.getRegion(r);
+
+			ConnectorClientAttributes attributes = new ConnectorClientAttributes(credentialsProvider,region,
+					maxBatchOpenMs,maxBatchSize,maxInflightOutboundBatches, s3BucketName);
+
+			LogEventProcessor logEventProcessor = ProcessorSupplier.selectProcessor(largeMessageMode);
+
+			ConnectorClient connectorClient = new ConnectorClient(attributes);
 			final SqsManager manager = new SqsManager(getConfiguration(), getConfiguration().getLoggerContext(),
-					getName(), awsRegion, awsAccessKey, awsSecretKey, queueName, largeMessageQueueName, maxBatchOpenMs, maxBatchSize, maxInflightOutboundBatches, maxMessageBytes, largeMessagesEnabled);
+					getName(), queueName, largeMessageQueueName, maxMessageBytes, largeMessageMode, s3BucketName,
+					connectorClient);
+
 			return new SqsAppender(getName(), getLayout(), getFilter(), isIgnoreExceptions(), manager);
 		}
 
-		public String getAwsAccessKey() {
-			return awsAccessKey;
-		}
-
-		public String getAwsSecretKey() {
-			return awsSecretKey;
-		}
-
-		public String getAwsRegion() {
-			return awsRegion;
-		}
-
-		public String getQueueName() {
-			return queueName;
-		}
-
-		public String getLargeMessageQueueName() {
-			return largeMessageQueueName;
-		}
-
-		public Integer getMaxBatchOpenMs() {
-			return maxBatchOpenMs;
-		}
-
-		public Integer getMaxBatchSize() {
-			return maxBatchSize;
-		}
-
-		public Integer getMaxInflightOutboundBatches() {
-			return maxInflightOutboundBatches;
-		}
-
-		public Integer getMaxMessageBytes() {
-			return maxMessageBytes;
-		}
-
-		public Boolean getLargeMessagesEnabled() {
-			return largeMessagesEnabled;
-		}
-
-		public B setAwsAccessKey(final String awsAccessKey) {
-			this.awsAccessKey = awsAccessKey;
-			return asBuilder();
-		}
-
-		public B setAwsSecretKey(final String awsSecretKey) {
-			this.awsSecretKey = awsSecretKey;
-			return asBuilder();
-		}
-
-		public B setAwsRegion(final String awsRegion) {
-			this.awsRegion = awsRegion;
-			return asBuilder();
-		}
-
-		public B setQueueName(final String queueName) {
-			this.queueName = queueName;
-			return asBuilder();
-		}
-
-		public B setLargeMessageQueueName(final String largeMessageQueueName) {
-			this.largeMessageQueueName = largeMessageQueueName;
-			return asBuilder();
-		}
-
-		public B setMaxBatchOpenMs(final Integer maxBatchOpenMs) {
-			this.maxBatchOpenMs = maxBatchOpenMs;
-			return asBuilder();
-		}
-
-		public B setMaxBatchSize(final Integer maxBatchSize) {
-			this.maxBatchSize = maxBatchSize;
-			return asBuilder();
-		}
-
-		public B setMaxInflightOutboundBatches(final Integer maxInflightOutboundBatches) {
-			this.maxInflightOutboundBatches = maxInflightOutboundBatches;
-			return asBuilder();
-		}
-
-		public B setMaxMessageBytes(final Integer maxMessageBytes) {
-			this.maxMessageBytes = maxMessageBytes;
-			return asBuilder();
-		}
-
-		public B setLargeMessagesEnabled(final Boolean largeMessagesEnabled) {
-			this.largeMessagesEnabled = largeMessagesEnabled;
-			return asBuilder();
-		}
 	}
 
 	/**
@@ -163,7 +101,8 @@ class SqsAppender extends AbstractAppender {
 	private final SqsManager manager;
 
 
-	public SqsAppender(final String name, final Layout<? extends Serializable> layout, final Filter filter, final boolean ignoreExceptions, final SqsManager manager) {
+	public SqsAppender(final String name, final Layout<? extends Serializable> layout, final Filter filter,
+			final boolean ignoreExceptions, final SqsManager manager) {
 		super(name, filter, layout, ignoreExceptions);
 		this.manager = Objects.requireNonNull(manager, "manager");
 	}
