@@ -21,55 +21,55 @@ import java.util.UUID;
  */
 public class FifoMessageProcessor implements LogEventProcessor {
 
-	private static final Logger logger = LogManager.getLogger(FifoMessageProcessor.class);
+    private static final Logger logger = LogManager.getLogger(FifoMessageProcessor.class);
 
-	@Override public MessageRequestWrapper process(ProcessorAttributes processorAttributes) {
-		List<SendMessageRequest> sendMessageRequestList = new ArrayList<>();
-		logger.debug("Fifo - Splitting large message");
-		// Generate Message Hash to use as the group ID
-		UUID uuid = UUID.randomUUID();
-		logger.debug("Large Message UUID: {}", uuid);
-		String[] splitMessage = splitStringByByteLength(processorAttributes.getMessage(), "UTF-8", processorAttributes.getMaxMessageSize());
-		MessageRequestWrapper messageRequestWrapper = new MessageRequestWrapper();
+    @Override
+    public MessageRequestWrapper process(ProcessorAttributes processorAttributes) {
+        List<SendMessageRequest> sendMessageRequestList = new ArrayList<>();
+        logger.debug("Splitting large message");
+        UUID uuid = UUID.randomUUID();
+        logger.debug("Large Message UUID: {}", uuid);
+        String[] splitMessage = splitStringByByteLength(processorAttributes.getMessage(), "UTF-8", processorAttributes.getMaxMessageSize());
+        MessageRequestWrapper messageRequestWrapper = new MessageRequestWrapper();
 
-		for (int i = 0; i < splitMessage.length; i++) {
-			logger.debug("Sending message {} of {}", i + 1, splitMessage.length);
-			SendMessageRequest sendMessageRequest = new SendMessageRequest();
-			sendMessageRequest.setMessageBody(String.format("currentPart=%d|totalParts=%d|uuid=%s|message=%s", i + 1, splitMessage.length, uuid, splitMessage[i]));
-			sendMessageRequest.setMessageGroupId(uuid.toString());
-			sendMessageRequest.setQueueUrl(processorAttributes.getQueueUrl());
-			sendMessageRequestList.add(sendMessageRequest);
-			messageRequestWrapper.setSendMessageRequest(sendMessageRequestList);
-		}
-		return messageRequestWrapper;
-	}
+        for (int i = 0; i < splitMessage.length; i++) {
+            logger.debug("Sending message {} of {}", i + 1, splitMessage.length);
+            SendMessageRequest sendMessageRequest = new SendMessageRequest();
+            sendMessageRequest.setMessageBody(String.format("currentPart=%d|totalParts=%d|uuid=%s|message=%s", i + 1, splitMessage.length, uuid, splitMessage[i]));
+            sendMessageRequest.setMessageGroupId(uuid.toString());
+            sendMessageRequest.setQueueUrl(processorAttributes.getQueueUrl());
+            sendMessageRequestList.add(sendMessageRequest);
+            messageRequestWrapper.setSendMessageRequest(sendMessageRequestList);
+        }
+        return messageRequestWrapper;
+    }
 
-	/**
-	 * Split the input string into a list of strings, each with a maximum memory size of maxsize bytes.
-	 *
-	 * @param src the source string
-	 * @param encoding the encoding to use for the output string
-	 * @param maxsize the maximum size of the string parts in bytes
-	 * @return an array of strings, each with a maximum length of maxsize bytes
-	 */
-	protected static String[] splitStringByByteLength(final String src, final String encoding, final int maxsize) {
-		Charset cs = Charset.forName(encoding);
-		CharsetEncoder coder = cs.newEncoder();
-		ByteBuffer out = ByteBuffer.allocate(maxsize);  // output buffer of required size
-		CharBuffer in = CharBuffer.wrap(src);
-		List<String> ss = new ArrayList<>();            // a list to store the chunks
-		int pos = 0;
-		while (true) {
-			CoderResult result = coder.encode(in, out, true); // try to encode as much as possible
-			int newpos = src.length() - in.length();
-			String s = src.substring(pos, newpos);
-			ss.add(s);                                  // add what has been encoded to the list
-			pos = newpos;                               // store new input position
-			out.rewind();                               // and rewind output buffer
-			if (!result.isOverflow()) {
-				break;                                  // everything has been encoded
-			}
-		}
-		return ss.toArray(new String[0]);
-	}
+    /**
+     * Split the input string into a list of strings, each with a maximum memory size of maxsize bytes.
+     *
+     * @param src      the source string
+     * @param encoding the encoding to use for the output string
+     * @param maxsize  the maximum size of the string parts in bytes
+     * @return an array of strings, each with a maximum length of maxsize bytes
+     */
+    protected static String[] splitStringByByteLength(final String src, final String encoding, final int maxsize) {
+        Charset cs = Charset.forName(encoding);
+        CharsetEncoder coder = cs.newEncoder();
+        ByteBuffer out = ByteBuffer.allocate(maxsize);
+        CharBuffer in = CharBuffer.wrap(src);
+        List<String> ss = new ArrayList<>();
+        int pos = 0;
+        while (true) {
+            CoderResult result = coder.encode(in, out, true);
+            int newpos = src.length() - in.length();
+            String s = src.substring(pos, newpos);
+            ss.add(s);
+            pos = newpos;
+            out.rewind();
+            if (!result.isOverflow()) {
+                break;
+            }
+        }
+        return ss.toArray(new String[0]);
+    }
 }

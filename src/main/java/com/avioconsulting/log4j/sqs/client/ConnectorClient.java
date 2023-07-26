@@ -33,7 +33,7 @@ public class ConnectorClient {
 	private void initS3Client(ConnectorClientAttributes attributes) {
 		if(awsS3Client == null) {
 			try {
-				this.awsS3Client =  AmazonS3ClientBuilder
+				this.awsS3Client = AmazonS3ClientBuilder
 						.standard()
 						.withRegion(String.valueOf(attributes.getAwsRegion()))
 						.withCredentials(new AWSStaticCredentialsProvider(attributes.getCredentialsProvider().getCredentials()))
@@ -59,6 +59,7 @@ public class ConnectorClient {
 	}
 
 	private void initSQSClient(ConnectorClientAttributes attributes) {
+
 		if (this.awsSQSAsyncClient == null) {
 			try {
 				AmazonSQSAsync asyncClient;
@@ -80,21 +81,21 @@ public class ConnectorClient {
 
 
 	public String getQueueURL(String queueName) {
-		if(this.queueUrl == null) {
+		if (this.queueUrl == null) {
 			this.queueUrl = this.awsSQSAsyncClient.getQueueUrl(queueName).getQueueUrl();
 		}
 		return this.queueUrl;
 	}
 
 	public String getLargeQueueUrl(String queueName) {
-		if(this.largeMessageQueueUrl == null) {
+		if (this.largeMessageQueueUrl == null) {
 			this.largeMessageQueueUrl = this.awsSQSAsyncClient.getQueueUrl(queueName).getQueueUrl();
 		}
 		return this.largeMessageQueueUrl;
 	}
 
 	public void sendMessages(MessageRequestWrapper messageList, String processorType) {
-		if(ProcessorType.EXTENDED.name().equals(processorType)){
+		if (ProcessorType.EXTENDED.name().equals(processorType)){
 			messageList.getSendMessageRequest().forEach(message -> this.awsSQSExtendedClient.sendMessage(message));
 		} else if (ProcessorType.S3.name().equals(processorType)) {
 			messageList.getPutObjectRequest().forEach(message -> this.awsS3Client.putObject(message));
@@ -102,5 +103,17 @@ public class ConnectorClient {
 			messageList.getSendMessageRequest().forEach(message -> this.awsSQSAsyncClient.sendMessageAsync(message));
 		}
 	}
+
+    public AmazonS3 getAwsS3Client() {
+        return awsS3Client;
+    }
+
+    public AmazonSQS getAwsSQSExtendedClient() {
+        return awsSQSExtendedClient;
+    }
+
+    public AmazonSQSBufferedAsyncClient getAwsSQSAsyncClient() {
+        return awsSQSAsyncClient;
+    }
 
 }

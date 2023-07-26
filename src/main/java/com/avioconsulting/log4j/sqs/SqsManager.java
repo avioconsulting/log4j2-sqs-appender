@@ -3,8 +3,8 @@ package com.avioconsulting.log4j.sqs;
 import com.avioconsulting.log4j.sqs.client.ConnectorClient;
 import com.avioconsulting.log4j.sqs.processor.LogEventProcessor;
 import com.avioconsulting.log4j.sqs.processor.ProcessorAttributes;
-import com.avioconsulting.log4j.sqs.processor.ProcessorType;
 import com.avioconsulting.log4j.sqs.processor.ProcessorSupplier;
+import com.avioconsulting.log4j.sqs.processor.ProcessorType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.Layout;
@@ -63,17 +63,17 @@ public class SqsManager extends AbstractManager {
         classLogger.debug("Message length: {}", messageLength);
         String queueUrl = connectorClient.getQueueURL(queueName);
 
-        if(ProcessorType.FIFO.name().equals(largeMessageMode)){
+        if (ProcessorType.FIFO.name().equals(largeMessageMode)) {
             queueUrl = connectorClient.getLargeQueueUrl(largeMessageQueueName);
         }
 
-        if(messageLength > maxMessageBytes ){
+        if (messageLength > maxMessageBytes) {
             logEventProcessor = ProcessorSupplier.selectProcessor(largeMessageMode);
             messageMode = largeMessageMode;
         }
 
-        ProcessorAttributes processorAttributes = new ProcessorAttributes(message,queueUrl,maxMessageBytes, bucketName);
-        this.connectorClient.sendMessages(logEventProcessor.process(processorAttributes),messageMode);
+        ProcessorAttributes processorAttributes = new ProcessorAttributes(message, queueUrl, maxMessageBytes, bucketName);
+        this.connectorClient.sendMessages(logEventProcessor.process(processorAttributes), messageMode);
 
     }
 

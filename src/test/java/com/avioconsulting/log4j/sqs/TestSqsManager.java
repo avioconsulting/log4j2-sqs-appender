@@ -1,6 +1,5 @@
 package com.avioconsulting.log4j.sqs;
 
-import org.junit.Assert;
 import org.junit.Test;
 
 public class TestSqsManager {
@@ -29,7 +28,7 @@ public class TestSqsManager {
     @Test
     public void multibyteSplitStringByByteLengthTest() {
         String testString = "\uD80C\uDCA9\uD80C\uDCA9\uD80C\uDCA9\uD80C\uDCA9\uD80C\uDCA9\uD80C\uDCA9\uD80C\uDCA9\uD80C\uDCA9\uD80C\uDCA9\uD80C\uDCA9\uD80C\uDCA9\uD80C\uDCA9";
-       // String[] splitStrings = SqsManager.splitStringByByteLength(testString, "UTF-8", 24);
+        // String[] splitStrings = SqsManager.splitStringByByteLength(testString, "UTF-8", 24);
         //Assert.assertEquals(splitStrings.length, 2);
     }
 
