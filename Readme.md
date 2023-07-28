@@ -23,7 +23,7 @@ Use this dependency in your Java/Mule Applications
 <dependency>
     <groupId>com.avioconsulting</groupId>
     <artifactId>log4j2-sqs-appender</artifactId>
-    <version>1.0.0</version>
+    <version>1.1.2</version>
 </dependency>
 ```
 
@@ -32,18 +32,18 @@ Use this dependency in your Java/Mule Applications
 ```xml
 <Appenders>
     <SQS name="SQS" 
-         awsAccessKey="ACCESSKEY"
-         awsRegion="us-east-1"
-         awsSecretKey="SECRETKEY"
+         awsAccessKey="<aws access key>"
+         awsRegion="<aws region>"
+         awsSecretKey="<aws secret key>"
          maxBatchOpenMs="10000"
          maxBatchSize="1"
          maxInflightOutboundBatches="1"
          queueName="<a normal length message queue name>"
-         largeMessageMode="<TRUNCATE|DISCARD|FIFO|EXTENDED|S3>"
-         largeMessageQueueName="<a large length message queue name.fifo>"
+         largeMessageMode="<possible values: TRUNCATE|DISCARD|FIFO|EXTENDED|S3>"
+         largeMessageQueueName="<a large length message queue name>"
          s3BucketName="<a s3 bucket name>"
-         maxMessageBytes="256">
-         <PatternLayout pattern="%-5p %d [%t] %c: ##MESSAGE## %m%n"/>
+         maxMessageBytes="<numeric max bytes of the message>">
+         <PatternLayout pattern="<a log4j pattern ie: %-5p %d [%t] %c: ##MESSAGE## %m%n>"/>
     </SQS>
 </Appenders>
 ```
@@ -82,7 +82,7 @@ Optional Configurations
 * `largeMessageQueueName` - this is the name of an SQS FIFO queue to be used for large messages.
 * `queueName` - this is the name of an SQS normal queue to be used for messages which `length < maxMessageBytes`.
   Discarded & truncated message will be included as well.
-* `largeMessageMode` - select one of the provided options to process an event message larger than `maxMessageBytes`
+* `largeMessageMode` - select one of the provided options `(TRUNCATE|DISCARD|FIFO|EXTENDED|S3)` to process an event message larger than `maxMessageBytes`
   before sent it to target.
     * `TRUNCATE` - message will be truncated to `maxMessageBytes`.
     * `DISCARD` - It will modify message by changing original content
@@ -91,8 +91,8 @@ Optional Configurations
       group ID value (the uuid) so they are guaranteed to be processed in order. The SQS messages will need to be
       accumulated so the log message can be reconstructed.
       The message format looks like
-      this: `currentPart=1|totalParts=5|uuid=8744fe2c-cbea-4e49-8b81-0d7076899a48|message="{\"timeMillis\":1647825592778,\"thread\":\"[MuleRuntime].uber.09: [sqs-test].logFilesFlow.CPU_LITE @5d97440f\",\"level\":\"INFO\",\"loggerName\":\"com.avioconsulting.api\",\"message\":{\"timestamp\":\"2022-03-21T01:19:52.776Z\",\"appName\":\"sqs-test\",\"appVersion\":\"1.0.0\",\"correlationId\":\"0295a030-a8b5-11ec-95cb-f01898a624f3\",\"payload\":\"{\\n \\\"filePath\\\": \\\"/docs/samplePayload.json\\\"\\n}\"},\"endOfBatch\":true,\"loggerFqcn\":\"org.apache.logging.log4j.spi.AbstractLogger\",\"contextMap\":{\"correlationId\":\"0295a030-a8b5-11ec-95cb-f01898a624f3\",\"processorPath\":\"logFilesFlow/processors/0/processors/0\"},\"threadId\":58,\"threadPriority\":5,\"timestamp\":\"2022-03-20T20:19:52.778-0500\",\"deployedAppName\":\"${sys:domain}\"}"`
-    * `EXTENDED` - In this case the message will be queued into SQS `queueName` queue with a reference to `s3BucketName`
+      this: `currentPart=1|totalParts=5|uuid=8744fe2c-cbea-4e49-8b81-0d7076899a48|message="[INFO] - Hello World! "` 
+    * `EXTENDED` - In this case the message will be queued into SQS `queueName` queue with a reference id to `s3BucketName`
       bucket file, which at the end, will contain the actual message.
     * `S3` - Finally, if this is chosen, the message will be stored directly as a file into `s3BucketName`. No SQS
       message is send.
@@ -102,18 +102,30 @@ Example with all possible configurations:
 ```xml
 <Appenders>
     <SQS name="SQS" 
-         awsAccessKey="ACCESSKEY"
-         awsRegion="us-east-1"
-         awsSecretKey="SECRETKEY"
+         awsAccessKey="YOURACCESSKEY"
+         awsRegion="YOURAWSREGION"
+         awsSecretKey="YOURSECRETKEY"
          maxBatchOpenMs="10000"
          maxBatchSize="1"
          maxInflightOutboundBatches="1"
-         queueName="<a normal length message queue name>"
-         largeMessageMode="FIFO"
-         largeMessageQueueName="<a large length message queue name.fifo>"
-         s3BucketName="<a s3 bucket name>"
+         largeMessageMode="EXTENDED"
+         queueName="stg-normal-messages-queue"
+         largeMessageQueueName="stg-large-messages-queue"
+         s3BucketName="stg-sqs-messages-bucket"
          maxMessageBytes="256">
          <PatternLayout pattern="%-5p %d [%t] %c: ##MESSAGE## %m%n"/>
     </SQS>
 </Appenders>
+```
+Run Automated tests
+==========================
+* Run automated test of this componen using the following command.
+
+```
+mvn clean test -DawsAccessKey=YOURAWSKEY /
+ -DawsSecretKey=YOURAWSSECRET / 
+ -DawsRegion=YOURAWSREGION -DawsBucketName=your-bucket /
+ -DawsQueueName=your-queue / 
+ -DawsLargeMessageQueueName=your-large-queue /
+ -DmaxMessageBytes=25600
 ```

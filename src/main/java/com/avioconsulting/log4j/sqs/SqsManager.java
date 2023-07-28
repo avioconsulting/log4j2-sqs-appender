@@ -4,7 +4,6 @@ import com.avioconsulting.log4j.sqs.client.ConnectorClient;
 import com.avioconsulting.log4j.sqs.processor.LogEventProcessor;
 import com.avioconsulting.log4j.sqs.processor.ProcessorAttributes;
 import com.avioconsulting.log4j.sqs.processor.ProcessorSupplier;
-import com.avioconsulting.log4j.sqs.processor.ProcessorType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.Layout;
@@ -56,24 +55,13 @@ public class SqsManager extends AbstractManager {
     }
 
     public void send(final Layout<?> layout, final LogEvent event) {
-        LogEventProcessor logEventProcessor = ProcessorSupplier.selectProcessor(ProcessorType.DEFAULT.name());
-        String messageMode = ProcessorType.DEFAULT.name();
+        LogEventProcessor logEventProcessor = ProcessorSupplier.selectProcessor(largeMessageMode);
         String message = new String(layout.toByteArray(event), StandardCharsets.UTF_8);
+        String messageMode = largeMessageMode;
         int messageLength = message.getBytes().length;
         classLogger.debug("Message length: {}", messageLength);
-        String queueUrl = connectorClient.getQueueURL(queueName);
-
-        if (ProcessorType.FIFO.name().equals(largeMessageMode)) {
-            queueUrl = connectorClient.getLargeQueueUrl(largeMessageQueueName);
-        }
-
-        if (messageLength > maxMessageBytes) {
-            logEventProcessor = ProcessorSupplier.selectProcessor(largeMessageMode);
-            messageMode = largeMessageMode;
-        }
-
-        ProcessorAttributes processorAttributes = new ProcessorAttributes(message, queueUrl, maxMessageBytes, bucketName);
-        this.connectorClient.sendMessages(logEventProcessor.process(processorAttributes), messageMode);
+        ProcessorAttributes processorAttributes = new ProcessorAttributes(message, maxMessageBytes, bucketName);
+        this.connectorClient.sendMessages(logEventProcessor.process(processorAttributes), messageMode, queueName, largeMessageQueueName);
 
     }
 

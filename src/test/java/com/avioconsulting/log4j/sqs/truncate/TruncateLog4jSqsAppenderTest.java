@@ -1,18 +1,13 @@
 package com.avioconsulting.log4j.sqs.truncate;
 
-import com.amazonaws.auth.AWSStaticCredentialsProvider;
-import com.amazonaws.auth.BasicAWSCredentials;
-import com.amazonaws.services.sqs.AmazonSQSAsync;
-import com.amazonaws.services.sqs.AmazonSQSAsyncClientBuilder;
 import com.amazonaws.services.sqs.buffered.AmazonSQSBufferedAsyncClient;
-import com.amazonaws.services.sqs.buffered.QueueBufferConfig;
 import com.amazonaws.services.sqs.model.*;
 import com.avioconsulting.log4j.sqs.processor.TruncateMessageProcessor;
+import com.avioconsulting.log4j.sqs.util.AppenderTestUtils;
 import com.avioconsulting.log4j.sqs.util.PropertiesProvider;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.junit.AfterClass;
-import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -21,8 +16,10 @@ import java.util.Collections;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
-import static com.avioconsulting.log4j.sqs.util.PropertiesProvider.*;
+import static com.avioconsulting.log4j.sqs.util.PropertiesProvider.AWS_SQS_LARGE_QUEUE_NAME;
+import static com.avioconsulting.log4j.sqs.util.PropertiesProvider.MAX_MESSAGE_BYTES;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 public class TruncateLog4jSqsAppenderTest {
 
@@ -35,77 +32,50 @@ public class TruncateLog4jSqsAppenderTest {
     private static String TRUNCATED_MESSAGES_QUEUE_URL;
 
     @BeforeClass
-    public static void getProperties() {
+    public static void startUpClass() {
         PropertiesProvider.readProperties();
-        getConnectionToSQSAsyncClient();
-        createQueue();
+        awsSQSAsyncClient = AppenderTestUtils.getConnectionToSQSAsyncClient();
+        TRUNCATED_MESSAGES_QUEUE_URL = AppenderTestUtils.createQueue(awsSQSAsyncClient,"truncate");
+        logger.info(MESSAGE_TO_LOG); //Puts log message using appender into
     }
 
     @AfterClass
-    public static void deleteMessagesFromQueue() {
-        deleteMessagesFromSQS();
-        deleteQueue();
+    public static void tearDownClass() {
+        awsSQSAsyncClient.deleteQueue(TRUNCATED_MESSAGES_QUEUE_URL);
         awsSQSAsyncClient.shutdown();
     }
 
     @Test
-    public void test_truncatedLogMessagesQuantity_in_sqs() throws ExecutionException, InterruptedException {
-        logger.info(MESSAGE_TO_LOG);
-        logger.info(MESSAGE_TO_LOG);
-        awsSQSAsyncClient.flush();
+    public void test_truncatedLogMessageContent_from_sqs () throws ExecutionException, InterruptedException {
+
         ReceiveMessageRequest receiveMessageRequest = new ReceiveMessageRequest()
                 .withQueueUrl(TRUNCATED_MESSAGES_QUEUE_URL)
                 .withWaitTimeSeconds(160)
                 .withMaxNumberOfMessages(1);
-        awsSQSAsyncClient.flush();
+
         Future<ReceiveMessageResult> messageResultFuture = awsSQSAsyncClient.receiveMessageAsync(receiveMessageRequest);
-        while (!messageResultFuture.isDone()) {
-            if (messageResultFuture.isDone()) {
-                String queuedMessageBody = messageResultFuture.get().getMessages().get(0).getBody();
-                assertEquals(queuedMessageBody, truncateLoggedString());
+        boolean received = false;
+        while (!received) {
+            if (messageResultFuture.get().getMessages().size() > 0) {
+                Message message = messageResultFuture.get().getMessages().get(0);
+                assertEquals(message.getBody(), truncateLoggedString());
+                awsSQSAsyncClient.deleteMessage(TRUNCATED_MESSAGES_QUEUE_URL, message.getReceiptHandle());
+                received = true;
             }
         }
 
-        assertEquals(Integer.valueOf(1), this.getMessagesQuantityFromSQSQueue());
-    }
+        if(!received) {
+            fail("No messages received!");
+        }
 
-    private static void deleteMessagesFromSQS() {
-        PurgeQueueRequest purgeQueueRequest = new PurgeQueueRequest(TRUNCATED_MESSAGES_QUEUE_URL);
-        awsSQSAsyncClient.purgeQueue(purgeQueueRequest);
-    }
-
-    private static void getConnectionToSQSAsyncClient() {
-            AWSStaticCredentialsProvider credentialsProvider = new AWSStaticCredentialsProvider(
-                    new BasicAWSCredentials(AWS_ACCESS_KEY, AWS_SECRET_KEY));
-            AmazonSQSAsync asyncClient;
-            AmazonSQSAsyncClientBuilder clientBuilder = AmazonSQSAsyncClientBuilder.standard();
-            asyncClient = clientBuilder.withRegion(String.valueOf(AWS_REGION))
-                    .withCredentials(credentialsProvider)
-                    .build();
-            QueueBufferConfig config = new QueueBufferConfig().withMaxBatchOpenMs(MAX_BATCH_OPEN_MS)
-                    .withMaxBatchSize(MAX_BATCH_SIZE)
-                    .withMaxInflightOutboundBatches(MAX_INFLIGHT_OUTBOUND_BATCHES);
-            awsSQSAsyncClient = new AmazonSQSBufferedAsyncClient(asyncClient, config);
-    }
-
-    private static void createQueue() {
-        CreateQueueResult result = awsSQSAsyncClient.createQueue(AWS_SQS_QUEUE_NAME + "-truncate");
-        TRUNCATED_MESSAGES_QUEUE_URL = result.getQueueUrl();
-    }
-
-    private static void deleteQueue() {
-        awsSQSAsyncClient.deleteQueue(TRUNCATED_MESSAGES_QUEUE_URL);
+        GetQueueAttributesResult attributes = awsSQSAsyncClient.getQueueAttributes(TRUNCATED_MESSAGES_QUEUE_URL, Collections.singletonList("ApproximateNumberOfMessages"));
+        String sizeAsStr = attributes.getAttributes().get("ApproximateNumberOfMessages");
+        assertEquals("0",sizeAsStr);
     }
 
     private String truncateLoggedString() {
-        //TODO get maxsize from parameters
-        return TruncateMessageProcessor.truncateStringByByteLength("[INFO] - " + MESSAGE_TO_LOG, StandardCharsets.UTF_8.name(), 256);
+        return TruncateMessageProcessor.truncateStringByByteLength("[INFO] - " + MESSAGE_TO_LOG, StandardCharsets.UTF_8.name(), MAX_MESSAGE_BYTES);
     }
 
-    private Integer getMessagesQuantityFromSQSQueue() {
-        GetQueueAttributesResult getQueueAttributesResult =
-                awsSQSAsyncClient.getQueueAttributes(TRUNCATED_MESSAGES_QUEUE_URL, Collections.singletonList("ApproximateNumberOfMessages"));
-        return Integer.valueOf(getQueueAttributesResult.getAttributes().get("ApproximateNumberOfMessages"));
-    }
 
 }

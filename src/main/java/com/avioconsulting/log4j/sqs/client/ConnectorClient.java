@@ -20,14 +20,12 @@ public class ConnectorClient {
 	private AmazonS3 awsS3Client;
 	private AmazonSQS awsSQSExtendedClient;
 	private AmazonSQSBufferedAsyncClient awsSQSAsyncClient;
-	private String queueUrl;
-	private String largeMessageQueueUrl;
 	public static final Logger classLogger = LogManager.getLogger(ConnectorClient.class);
 
+	private ConnectorClientAttributes connectorClientAttributes;
+
 	public ConnectorClient(ConnectorClientAttributes attributes) {
-		this.initS3Client(attributes);
-		this.initSqsExtendedClient(attributes);
-		this.initSQSClient(attributes);
+		this.connectorClientAttributes = attributes;
 	}
 
 	private void initS3Client(ConnectorClientAttributes attributes) {
@@ -79,41 +77,41 @@ public class ConnectorClient {
 		}
 	}
 
-
-	public String getQueueURL(String queueName) {
-		if (this.queueUrl == null) {
-			this.queueUrl = this.awsSQSAsyncClient.getQueueUrl(queueName).getQueueUrl();
-		}
-		return this.queueUrl;
-	}
-
-	public String getLargeQueueUrl(String queueName) {
-		if (this.largeMessageQueueUrl == null) {
-			this.largeMessageQueueUrl = this.awsSQSAsyncClient.getQueueUrl(queueName).getQueueUrl();
-		}
-		return this.largeMessageQueueUrl;
-	}
-
-	public void sendMessages(MessageRequestWrapper messageList, String processorType) {
+	public void sendMessages(MessageRequestWrapper messageList, String processorType, String queueName, String largeMessageQueueName) {
 		if (ProcessorType.EXTENDED.name().equals(processorType)){
-			messageList.getSendMessageRequest().forEach(message -> this.awsSQSExtendedClient.sendMessage(message));
+			sendExtendedMessages(messageList,largeMessageQueueName);
 		} else if (ProcessorType.S3.name().equals(processorType)) {
+			initS3Client(connectorClientAttributes);
 			messageList.getPutObjectRequest().forEach(message -> this.awsS3Client.putObject(message));
 		} else {
-			messageList.getSendMessageRequest().forEach(message -> this.awsSQSAsyncClient.sendMessageAsync(message));
+			sendFIFOTruncateDiscardedMessages(messageList,queueName,largeMessageQueueName,processorType);
 		}
 	}
 
-    public AmazonS3 getAwsS3Client() {
-        return awsS3Client;
-    }
+	private void sendExtendedMessages(MessageRequestWrapper messageList, String queueName) {
+		initS3Client(connectorClientAttributes);
+		initSqsExtendedClient(connectorClientAttributes);
+		String queueUrl = this.awsSQSExtendedClient.getQueueUrl(queueName).getQueueUrl();
+		messageList.getSendMessageRequest().forEach(message -> {
+			message.setQueueUrl(queueUrl);
+			this.awsSQSExtendedClient.sendMessage(message);
+		});
+	}
 
-    public AmazonSQS getAwsSQSExtendedClient() {
-        return awsSQSExtendedClient;
-    }
+	private void sendFIFOTruncateDiscardedMessages(MessageRequestWrapper messageList, String queueName, String largeMessageQueueName, String processorType) {
+		initSQSClient(connectorClientAttributes);
+		String queueUrl = null;
+		if (ProcessorType.DEFAULT.name().equals(processorType)) {
+			queueUrl = awsSQSAsyncClient.getQueueUrl(queueName).getQueueUrl();
+		} else {
+			queueUrl = awsSQSAsyncClient.getQueueUrl(largeMessageQueueName).getQueueUrl();
+		}
 
-    public AmazonSQSBufferedAsyncClient getAwsSQSAsyncClient() {
-        return awsSQSAsyncClient;
-    }
+		String finalQueueUrl = queueUrl;
+		messageList.getSendMessageRequest().forEach(message -> {
+			message.setQueueUrl(finalQueueUrl);
+			this.awsSQSAsyncClient.sendMessageAsync(message);
+		});
+	}
 
 }

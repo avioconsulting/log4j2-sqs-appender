@@ -1,63 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Configuration packages="com.avioconsulting.log4j.sqs">
     <Appenders>
-        <!--
-        <SQS name="DISCARD"
-             awsAccessKey="${main:awsAccessKey}"
-             awsRegion="us-east-1"
-             awsSecretKey="${main:awsSecretKey}"
-             maxBatchOpenMs="10000"
-             maxBatchSize="1"
-             maxInflightOutboundBatches="1"
-             queueName="sqs-appender-normal"
-             largeMessageMode="DISCARD"
-             largeMessageQueueName="sqs-appender-large.fifo"
-             s3BucketName="bucketname"
-             maxMessageBytes="256">
-            <PatternLayout pattern="%-5p %d [%t] %c: ##DISCARDED## %m%n"/>
-        </SQS>
-        <SQS name="FIFO"
-             awsAccessKey="${main:awsAccessKey}"
-             awsRegion="us-east-1"
-             awsSecretKey="${main:awsSecretKey}"
-             maxBatchOpenMs="10000"
-             maxBatchSize="1"
-             maxInflightOutboundBatches="1"
-             queueName="sqs-appender-normal"
-             largeMessageMode="FIFO"
-             largeMessageQueueName="sqs-appender-large.fifo"
-             s3BucketName="bucketname"
-             maxMessageBytes="256">
-            <PatternLayout pattern="%-5p %d [%t] %c: ##FIFO## %m%n"/>
-        </SQS>
         <SQS name="EXTENDED"
-             awsAccessKey="${main:awsAccessKey}"
-             awsRegion="us-east-1"
-             awsSecretKey="${main:awsSecretKey}"
-             maxBatchOpenMs="10000"
-             maxBatchSize="1"
-             maxInflightOutboundBatches="1"
-             queueName="sqs-appender-normal"
-             largeMessageMode="EXTENDED"
-             largeMessageQueueName="sqs-appender-large.fifo"
-             s3BucketName="sqs-extended-test-bucket"
-             maxMessageBytes="256">
-            <PatternLayout pattern="%-5p %d [%t] %c: ##EXTENDED## %m%n"/>
-        </SQS>
-        <SQS name="FIFO"
              awsAccessKey="${sys:awsAccessKey}"
              awsRegion="${sys:awsRegion}"
              awsSecretKey="${sys:awsSecretKey}"
-             maxBatchOpenMs="10000"
-             maxBatchSize="1"
-             maxInflightOutboundBatches="1"
-             queueName="sqs-appender-normal"
-             largeMessageMode="FIFO"
-             largeMessageQueueName="sqs-appender-large.fifo"
+             queueName="${sys:awsQueueName}"
+             largeMessageMode="EXTENDED"
+             largeMessageQueueName="extended-${sys:awsLargeMessageQueueName}"
              s3BucketName="${sys:awsBucketName}"
-             maxMessageBytes="256">
-            <PatternLayout pattern="%-5p %d [%t] %c: ##FIFO## %m%n"/>
-        </SQS-->
+             maxMessageBytes="${sys:maxMessageBytes}">
+            <PatternLayout pattern="[%p] - %m%n"/>
+        </SQS>
         <SQS name="FIFO"
              awsAccessKey="${sys:awsAccessKey}"
              awsRegion="${sys:awsRegion}"
@@ -65,11 +19,10 @@
              maxBatchOpenMs="200"
              maxBatchSize="1"
              maxInflightOutboundBatches="1"
-             queueName="${sys:awsQueueName}-discard"
-             largeMessageMode="DISCARD"
-             largeMessageQueueName="aviofifo.fifo"
-             s3BucketName="anybucket"
-             maxMessageBytes="256">
+             queueName="${sys:awsQueueName}"
+             largeMessageMode="FIFO"
+             largeMessageQueueName="${sys:awsLargeMessageQueueName}.fifo"
+             maxMessageBytes="${sys:maxMessageBytes}">
             <PatternLayout pattern="[%p] - %m%n"/>
         </SQS>
         <SQS name="DISCARD"
@@ -79,11 +32,10 @@
              maxBatchOpenMs="200"
              maxBatchSize="1"
              maxInflightOutboundBatches="1"
-             queueName="${sys:awsQueueName}-discard"
+             queueName="${sys:awsQueueName}"
+             largeMessageQueueName="discard-${sys:awsLargeMessageQueueName}"
              largeMessageMode="DISCARD"
-             largeMessageQueueName="sqs-appender-large.fifo"
-             s3BucketName="anybucket"
-             maxMessageBytes="256">
+             maxMessageBytes="${sys:maxMessageBytes}">
             <PatternLayout pattern="[%p] - %m%n"/>
         </SQS>
         <SQS name="TRUNCATE"
@@ -93,25 +45,20 @@
              maxBatchOpenMs="200"
              maxBatchSize="1"
              maxInflightOutboundBatches="1"
-             queueName="${sys:awsQueueName}-truncate"
+             queueName="${sys:awsQueueName}"
              largeMessageMode="TRUNCATE"
-             largeMessageQueueName="sqs-appender-large.fifo"
-             s3BucketName="bucketname"
-             maxMessageBytes="256">
+             largeMessageQueueName="truncate-${sys:awsLargeMessageQueueName}"
+             maxMessageBytes="${sys:maxMessageBytes}">
             <PatternLayout pattern="[%p] - %m%n"/>
         </SQS>
         <SQS name="S3"
              awsAccessKey="${sys:awsAccessKey}"
              awsRegion="${sys:awsRegion}"
              awsSecretKey="${sys:awsSecretKey}"
-             maxBatchOpenMs="200"
-             maxBatchSize="1"
-             maxInflightOutboundBatches="1"
-             queueName="sqs-appender-normal"
+             queueName="${sys:awsQueueName}"
              largeMessageMode="S3"
-             largeMessageQueueName="sqs-appender-large.fifo"
              s3BucketName="${sys:awsBucketName}"
-             maxMessageBytes="256">
+             maxMessageBytes="${sys:maxMessageBytes}">
             <PatternLayout pattern="[%p] - %m%n"/>
         </SQS>
         <Console name="RootConsole" target="SYSTEM_OUT">
@@ -134,9 +81,8 @@
         <Logger name="com.avioconsulting.log4j.sqs.fifo" level="DEBUG" additivity="false">
             <AppenderRef ref="FIFO"/>
         </Logger>
-        <!--
-      <Logger name="com.avioconsulting.log4j.sqs.extended" level="DEBUG" additivity="false">
+        <Logger name="com.avioconsulting.log4j.sqs.extended" level="DEBUG" additivity="false">
           <AppenderRef ref="EXTENDED"/>
-      </Logger-->
+        </Logger>
     </Loggers>
 </Configuration>

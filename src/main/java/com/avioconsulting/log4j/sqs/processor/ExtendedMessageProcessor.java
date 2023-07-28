@@ -21,7 +21,6 @@ public class ExtendedMessageProcessor implements LogEventProcessor {
         logger.debug("Sending EXTENDED message.");
         SendMessageRequest sendMessageRequest = new SendMessageRequest();
         sendMessageRequest.setMessageBody(processorAttributes.getMessage());
-        sendMessageRequest.setQueueUrl(processorAttributes.getQueueUrl());
         MessageRequestWrapper messageRequestWrapper = new MessageRequestWrapper();
         messageRequestWrapper.setSendMessageRequest(Arrays.asList(sendMessageRequest));
         return messageRequestWrapper;

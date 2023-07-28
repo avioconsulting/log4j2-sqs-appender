@@ -2,6 +2,7 @@ package com.avioconsulting.log4j.sqs;
 
 import com.avioconsulting.log4j.sqs.client.ConnectorClient;
 import com.avioconsulting.log4j.sqs.client.ConnectorClientFactory;
+import com.avioconsulting.log4j.sqs.processor.ProcessorType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.*;
@@ -37,7 +38,6 @@ class SqsAppender extends AbstractAppender {
     @Override
     public void start() {
         super.start();
-        manager.startup();
     }
 
     public void append(LogEvent event) {
@@ -99,6 +99,19 @@ class SqsAppender extends AbstractAppender {
         @Override
         public SqsAppender build() {
             logger.debug("Initializing SQS appender");
+
+            if(ProcessorType.S3.name().equals(largeMessageMode) && s3BucketName.isEmpty()){
+                throw new RuntimeException("No s3BucketName provided for S3 largeMessageMode");
+            }
+
+            if(ProcessorType.EXTENDED.name().equals(largeMessageMode) && s3BucketName.isEmpty()){
+                throw new RuntimeException("No s3BucketName provided for EXTENDED largeMessageMode");
+            }
+
+            if(ProcessorType.FIFO.name().equals(largeMessageMode) && (largeMessageQueueName.isEmpty() || !largeMessageQueueName.endsWith(".fifo")) ){
+                throw new RuntimeException("No largeMessageQueueName provided for FIFO largeMessageMode");
+            }
+
             ConnectorClient connectorClient = ConnectorClientFactory.createConnectorClient(awsAccessKey, awsSecretKey, awsRegion, maxBatchOpenMs, maxBatchSize, maxInflightOutboundBatches, s3BucketName);
             final SqsManager manager = new SqsManager(getConfiguration(), getConfiguration().getLoggerContext(),
                     getName(), queueName, largeMessageQueueName, maxMessageBytes, largeMessageMode, s3BucketName,

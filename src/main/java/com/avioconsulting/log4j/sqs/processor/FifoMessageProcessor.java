@@ -37,7 +37,6 @@ public class FifoMessageProcessor implements LogEventProcessor {
             SendMessageRequest sendMessageRequest = new SendMessageRequest();
             sendMessageRequest.setMessageBody(String.format("currentPart=%d|totalParts=%d|uuid=%s|message=%s", i + 1, splitMessage.length, uuid, splitMessage[i]));
             sendMessageRequest.setMessageGroupId(uuid.toString());
-            sendMessageRequest.setQueueUrl(processorAttributes.getQueueUrl());
             sendMessageRequestList.add(sendMessageRequest);
             messageRequestWrapper.setSendMessageRequest(sendMessageRequestList);
         }
@@ -52,7 +51,7 @@ public class FifoMessageProcessor implements LogEventProcessor {
      * @param maxsize  the maximum size of the string parts in bytes
      * @return an array of strings, each with a maximum length of maxsize bytes
      */
-    protected static String[] splitStringByByteLength(final String src, final String encoding, final int maxsize) {
+    public static String[] splitStringByByteLength(final String src, final String encoding, final int maxsize) {
         Charset cs = Charset.forName(encoding);
         CharsetEncoder coder = cs.newEncoder();
         ByteBuffer out = ByteBuffer.allocate(maxsize);

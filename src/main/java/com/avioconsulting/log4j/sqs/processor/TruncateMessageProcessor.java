@@ -27,7 +27,6 @@ public class TruncateMessageProcessor implements LogEventProcessor {
         SendMessageRequest sendMessageRequest = new SendMessageRequest();
         sendMessageRequest.setMessageBody(truncateStringByByteLength(processorAttributes.getMessage(),
                 StandardCharsets.UTF_8.name(), processorAttributes.getMaxMessageSize()));
-        sendMessageRequest.setQueueUrl(processorAttributes.getQueueUrl());
         MessageRequestWrapper messageRequestWrapper = new MessageRequestWrapper();
         messageRequestWrapper.setSendMessageRequest(Arrays.asList(sendMessageRequest));
         return messageRequestWrapper;

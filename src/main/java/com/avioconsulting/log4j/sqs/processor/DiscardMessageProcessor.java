@@ -26,7 +26,6 @@ public class DiscardMessageProcessor implements LogEventProcessor {
         mutableLogEvent.setMessage(new SimpleMessage("Can't display log message. Message max size exceeded. max size:" + processorAttributes.getMaxMessageSize()));
         SendMessageRequest sendMessageRequest = new SendMessageRequest();
         sendMessageRequest.setMessageBody(mutableLogEvent.getMessage().getFormattedMessage());
-        sendMessageRequest.setQueueUrl(processorAttributes.getQueueUrl());
         MessageRequestWrapper messageRequestWrapper = new MessageRequestWrapper();
         messageRequestWrapper.setSendMessageRequest(Arrays.asList(sendMessageRequest));
         return messageRequestWrapper;

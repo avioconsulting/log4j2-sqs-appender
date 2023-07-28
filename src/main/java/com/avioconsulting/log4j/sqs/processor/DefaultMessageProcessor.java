@@ -23,7 +23,6 @@ public class DefaultMessageProcessor implements LogEventProcessor {
         logger.debug("Sending DEFAULT message.");
         SendMessageRequest sendMessageRequest = new SendMessageRequest();
         sendMessageRequest.setMessageBody(processorAttributes.getMessage());
-        sendMessageRequest.setQueueUrl(processorAttributes.getQueueUrl());
         MessageRequestWrapper messageRequestWrapper = new MessageRequestWrapper();
         messageRequestWrapper.setSendMessageRequest(Arrays.asList(sendMessageRequest));
         return messageRequestWrapper;
