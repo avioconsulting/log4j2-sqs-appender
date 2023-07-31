@@ -74,7 +74,7 @@ public class TruncateLog4jSqsAppenderTest {
     }
 
     private String truncateLoggedString() {
-        return TruncateMessageProcessor.truncateStringByByteLength("[INFO] - " + MESSAGE_TO_LOG, StandardCharsets.UTF_8.name(), MAX_MESSAGE_BYTES);
+        return new TruncateMessageProcessor().truncateStringByByteLength("[INFO] - " + MESSAGE_TO_LOG, StandardCharsets.UTF_8.name(), MAX_MESSAGE_BYTES);
     }
 
 

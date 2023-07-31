@@ -26,9 +26,8 @@ public class FifoMessageProcessor implements LogEventProcessor {
     @Override
     public MessageRequestWrapper process(ProcessorAttributes processorAttributes) {
         List<SendMessageRequest> sendMessageRequestList = new ArrayList<>();
-        logger.debug("Splitting large message");
         UUID uuid = UUID.randomUUID();
-        logger.debug("Large Message UUID: {}", uuid);
+        logger.debug("Splitting large message. Large message UUID: {}", uuid);
         String[] splitMessage = splitStringByByteLength(processorAttributes.getMessage(), "UTF-8", processorAttributes.getMaxMessageSize());
         MessageRequestWrapper messageRequestWrapper = new MessageRequestWrapper();
 
@@ -51,7 +50,7 @@ public class FifoMessageProcessor implements LogEventProcessor {
      * @param maxsize  the maximum size of the string parts in bytes
      * @return an array of strings, each with a maximum length of maxsize bytes
      */
-    public static String[] splitStringByByteLength(final String src, final String encoding, final int maxsize) {
+    public String[] splitStringByByteLength(final String src, final String encoding, final int maxsize) {
         Charset cs = Charset.forName(encoding);
         CharsetEncoder coder = cs.newEncoder();
         ByteBuffer out = ByteBuffer.allocate(maxsize);

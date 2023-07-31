@@ -21,7 +21,7 @@ public class PropertiesProvider {
         AWS_S3_BUCKET_NAME = testProperties.getProperty("awsBucketName");
         AWS_ACCESS_KEY = testProperties.getProperty("awsAccessKey");
         AWS_SECRET_KEY = testProperties.getProperty("awsSecretKey");
-        AWS_REGION = testProperties.getProperty("awsRegion");
+        AWS_REGION = testProperties.getProperty("awsRegion") != null ? testProperties.getProperty("awsRegion") : "us-west-2";
         AWS_SQS_QUEUE_NAME = testProperties.getProperty("awsQueueName");
         AWS_SQS_LARGE_QUEUE_NAME = testProperties.getProperty("awsLargeMessageQueueName");
         MAX_MESSAGE_BYTES = Integer.valueOf(testProperties.getProperty("maxMessageBytes"));

@@ -40,7 +40,7 @@ public class TruncateMessageProcessor implements LogEventProcessor {
      * @param maxsize  the maximum size of the string in bytes
      * @return the truncated string
      */
-    public static String truncateStringByByteLength(final String src, final String encoding, final int maxsize) {
+    public String truncateStringByByteLength(final String src, final String encoding, final int maxsize) {
         Charset cs = Charset.forName(encoding);
         CharsetEncoder coder = cs.newEncoder();
         ByteBuffer out = ByteBuffer.allocate(maxsize);

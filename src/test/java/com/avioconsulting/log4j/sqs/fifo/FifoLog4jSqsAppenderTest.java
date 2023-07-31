@@ -86,7 +86,7 @@ public class FifoLog4jSqsAppenderTest {
     @Test
     public void test_fifoLogMessageContent_from_sqs() throws ExecutionException, InterruptedException {
 
-        String[] parts = FifoMessageProcessor.splitStringByByteLength("[INFO] - " + MESSAGE_TO_LOG, StandardCharsets.UTF_8.name(), MAX_MESSAGE_BYTES);
+            String[] parts = new FifoMessageProcessor().splitStringByByteLength("[INFO] - " + MESSAGE_TO_LOG, StandardCharsets.UTF_8.name(), MAX_MESSAGE_BYTES);
         final int partAmount = parts.length;
         List<Message> messagesList = new ArrayList<>();
         for (int i = 0; i < partAmount; i++) {

@@ -19,7 +19,7 @@
         <aws.sdk.version>1.12.234</aws.sdk.version>
         <log4j.version>2.17.2</log4j.version>
         <junit.version>4.13.2</junit.version>
-        <commonsIO.version>2.11.0</commonsIO.version>
+        <commons.io.version>2.11.0</commons.io.version>
         <nexus.url>https://oss.sonatype.org</nexus.url>
     </properties>
 
@@ -99,7 +99,7 @@
         <dependency>
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
-            <version>${commonsIO.version}</version>
+            <version>${commons.io.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>

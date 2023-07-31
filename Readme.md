@@ -119,13 +119,17 @@ Example with all possible configurations:
 ```
 Run Automated tests
 ==========================
-* Run automated test of this componen using the following command.
-
+* Run automated test of this component using the following command.
 ```
 mvn clean test -DawsAccessKey=YOURAWSKEY /
  -DawsSecretKey=YOURAWSSECRET / 
- -DawsRegion=YOURAWSREGION -DawsBucketName=your-bucket /
- -DawsQueueName=your-queue / 
- -DawsLargeMessageQueueName=your-large-queue /
- -DmaxMessageBytes=25600
+ -DawsRegion=us-west-2 /
+ -DawsBucketName=appender-bucket /
+ -DawsQueueName=sqs-normal-appender / 
+ -DawsLargeMessageQueueName=sqs-large-appender /
+ -DmaxMessageBytes=256
 ```
+
+Permissions required:
+* sqs queue: create/delete/send message/read message/delete message
+* s3 bucket: create/delete/add file/remove files
