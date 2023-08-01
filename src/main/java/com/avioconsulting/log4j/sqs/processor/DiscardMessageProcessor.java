@@ -8,7 +8,7 @@ import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.impl.MutableLogEvent;
 import org.apache.logging.log4j.message.SimpleMessage;
 
-import java.util.Arrays;
+import java.util.Collections;
 
 /**
  * DiscardMessage will modify the original message for a log trace indicating that message
@@ -27,7 +27,7 @@ public class DiscardMessageProcessor implements LogEventProcessor {
         SendMessageRequest sendMessageRequest = new SendMessageRequest();
         sendMessageRequest.setMessageBody(mutableLogEvent.getMessage().getFormattedMessage());
         MessageRequestWrapper messageRequestWrapper = new MessageRequestWrapper();
-        messageRequestWrapper.setSendMessageRequest(Arrays.asList(sendMessageRequest));
+        messageRequestWrapper.setSendMessageRequest(Collections.singletonList(sendMessageRequest));
         return messageRequestWrapper;
     }
 

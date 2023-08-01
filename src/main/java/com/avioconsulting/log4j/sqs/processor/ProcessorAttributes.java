@@ -2,9 +2,9 @@ package com.avioconsulting.log4j.sqs.processor;
 
 public class ProcessorAttributes {
 
-    private String message;
-    private Integer maxMessageSize;
-    private String bucketName;
+    private final String message;
+    private final Integer maxMessageSize;
+    private final String bucketName;
 
     public ProcessorAttributes(String message, Integer maxMessageSize, String bucketName) {
         this.message = message;

@@ -9,7 +9,8 @@
              largeMessageMode="EXTENDED"
              largeMessageQueueName="extended-${sys:awsLargeMessageQueueName}"
              s3BucketName="${sys:awsBucketName}"
-             maxMessageBytes="${sys:maxMessageBytes}">
+             maxMessageBytes="${sys:maxMessageBytes}"
+             endpointURL="${sys:awsEndpointURL}">
             <PatternLayout pattern="[%p] - %m%n"/>
         </SQS>
         <SQS name="FIFO"
@@ -22,7 +23,8 @@
              queueName="${sys:awsQueueName}"
              largeMessageMode="FIFO"
              largeMessageQueueName="${sys:awsLargeMessageQueueName}.fifo"
-             maxMessageBytes="${sys:maxMessageBytes}">
+             maxMessageBytes="${sys:maxMessageBytes}"
+             endpointURL="${sys:awsEndpointURL}">
             <PatternLayout pattern="[%p] - %m%n"/>
         </SQS>
         <SQS name="DISCARD"
@@ -35,7 +37,8 @@
              queueName="${sys:awsQueueName}"
              largeMessageQueueName="discard-${sys:awsLargeMessageQueueName}"
              largeMessageMode="DISCARD"
-             maxMessageBytes="${sys:maxMessageBytes}">
+             maxMessageBytes="${sys:maxMessageBytes}"
+             endpointURL="${sys:awsEndpointURL}">
             <PatternLayout pattern="[%p] - %m%n"/>
         </SQS>
         <SQS name="TRUNCATE"
@@ -48,7 +51,8 @@
              queueName="${sys:awsQueueName}"
              largeMessageMode="TRUNCATE"
              largeMessageQueueName="truncate-${sys:awsLargeMessageQueueName}"
-             maxMessageBytes="${sys:maxMessageBytes}">
+             maxMessageBytes="${sys:maxMessageBytes}"
+             endpointURL="${sys:awsEndpointURL}">
             <PatternLayout pattern="[%p] - %m%n"/>
         </SQS>
         <SQS name="S3"
@@ -58,7 +62,8 @@
              queueName="${sys:awsQueueName}"
              largeMessageMode="S3"
              s3BucketName="${sys:awsBucketName}"
-             maxMessageBytes="${sys:maxMessageBytes}">
+             maxMessageBytes="${sys:maxMessageBytes}"
+             endpointURL="${sys:awsEndpointURL}">
             <PatternLayout pattern="[%p] - %m%n"/>
         </SQS>
         <Console name="RootConsole" target="SYSTEM_OUT">

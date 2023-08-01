@@ -96,6 +96,7 @@ Optional Configurations
       bucket file, which at the end, will contain the actual message.
     * `S3` - Finally, if this is chosen, the message will be stored directly as a file into `s3BucketName`. No SQS
       message is send.
+    * `endpointURL` - allows using VPC private network for sending messages. It's not required.
 
 Example with all possible configurations:
 
@@ -112,7 +113,8 @@ Example with all possible configurations:
          queueName="stg-normal-messages-queue"
          largeMessageQueueName="stg-large-messages-queue"
          s3BucketName="stg-sqs-messages-bucket"
-         maxMessageBytes="256">
+         maxMessageBytes="256"
+         endpointURL="https://sqs.us-east-2.amazonaws.com">
          <PatternLayout pattern="%-5p %d [%t] %c: ##MESSAGE## %m%n"/>
     </SQS>
 </Appenders>
@@ -128,8 +130,17 @@ mvn clean test -DawsAccessKey=YOURAWSKEY /
  -DawsQueueName=sqs-normal-appender / 
  -DawsLargeMessageQueueName=sqs-large-appender /
  -DmaxMessageBytes=256
+ -DawsEndpointURL=https://sqs.us-east-2.amazonaws.com
 ```
 
 Permissions required:
-* sqs queue: create/delete/send message/read message/delete message
-* s3 bucket: create/delete/add file/remove files
+* sqs queue: create/delete/send message/read message/delete message.
+* s3 bucket: create/delete/add file/remove files.
+
+### (optional) using localstack as aws local cloud stack
+
+1. installing and running localstack as described [here](https://docs.localstack.cloud/getting-started/installation/).
+2. for running tests locally using localstack just set `-DawsEndpointURL` to `http://s3.localhost.localstack.cloud:4566`.
+
+
+
