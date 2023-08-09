@@ -123,24 +123,8 @@ Run Automated tests
 ==========================
 * Run automated test of this component using the following command.
 ```
-mvn clean test -DawsAccessKey=YOURAWSKEY /
- -DawsSecretKey=YOURAWSSECRET / 
- -DawsRegion=us-west-2 /
- -DawsBucketName=appender-bucket /
- -DawsQueueName=sqs-normal-appender / 
- -DawsLargeMessageQueueName=sqs-large-appender /
- -DmaxMessageBytes=256
- -DawsEndpointURL=https://sqs.us-east-2.amazonaws.com
+mvn clean verify -Plocalstack-test
 ```
-
-Permissions required:
-* sqs queue: create/delete/send message/read message/delete message.
-* s3 bucket: create/delete/add file/remove files.
-
-### (optional) using localstack as aws local cloud stack
-
-1. installing and running localstack as described [here](https://docs.localstack.cloud/getting-started/installation/).
-2. for running tests locally using localstack just set `-DawsEndpointURL` to `http://s3.localhost.localstack.cloud:4566`.
-
+As it runs localstack using a docker image, you need to have docker installed in your local machine.
 
 
