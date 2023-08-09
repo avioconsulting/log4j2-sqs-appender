@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.avioconsulting</groupId>
     <artifactId>log4j2-sqs-appender</artifactId>
-    <version>1.1.1-SNAPSHOT</version>
+    <version>1.1.2-SNAPSHOT</version>
 
     <name>${project.groupId}:${project.artifactId}</name>
     <description>Log4j2 appender to allow publishing of log messages to Amazon SQS</description>
@@ -19,7 +19,9 @@
         <aws.sdk.version>1.12.234</aws.sdk.version>
         <log4j.version>2.17.2</log4j.version>
         <junit.version>4.13.2</junit.version>
+        <commons.io.version>2.11.0</commons.io.version>
         <nexus.url>https://oss.sonatype.org</nexus.url>
+        <docker.maven.plugin.version>0.43.0</docker.maven.plugin.version>
     </properties>
 
     <developers>
@@ -38,6 +40,12 @@
         <developer>
             <name>Chakri Bonthala</name>
             <email>cbonthala@avioconsulting.com</email>
+            <organization>AVIO Consulting</organization>
+            <organizationUrl>https://www.avioconsulting.com.com</organizationUrl>
+        </developer>
+        <developer>
+            <name>Francisco Rodríguez</name>
+            <email>francisco.rodriguez@avioconsulting.com</email>
             <organization>AVIO Consulting</organization>
             <organizationUrl>https://www.avioconsulting.com.com</organizationUrl>
         </developer>
@@ -89,9 +97,99 @@
             <version>${junit.version}</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>commons-io</groupId>
+            <artifactId>commons-io</artifactId>
+            <version>${commons.io.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.googlecode.json-simple</groupId>
+            <artifactId>json-simple</artifactId>
+            <version>1.1.1</version>
+        </dependency>
     </dependencies>
 
     <build>
+        <plugins>
+            <plugin>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <version>3.1.2</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>integration-test</goal>
+                            <goal>verify</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <systemPropertyVariables>
+                        <awsAccessKey>ABCDaE</awsAccessKey>
+                        <awsSecretKey>ABCDaE</awsSecretKey>
+                        <awsRegion>us-east-1</awsRegion>
+                        <awsBucketName>test-bucket</awsBucketName>
+                        <awsQueueName>normal-queue</awsQueueName>
+                        <awsLargeMessageQueueName>largue-queue</awsLargeMessageQueueName>
+                        <maxMessageBytes>256</maxMessageBytes>
+                        <awsEndpointURL>http://s3.localhost.localstack.cloud:4566</awsEndpointURL>
+                    </systemPropertyVariables>
+                    <includes>
+                        <include>**/*Test.java</include>
+                    </includes>
+                </configuration>
+            </plugin>
+            <plugin>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>2.12.3</version>
+                <configuration>
+                    <skip>true</skip>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>io.fabric8</groupId>
+                <artifactId>docker-maven-plugin</artifactId>
+                <version>${docker.maven.plugin.version}</version>
+                <executions>
+                    <execution>
+                        <id>docker-start</id>
+                        <phase>pre-integration-test</phase>
+                        <goals>
+                            <goal>start</goal>
+                        </goals>
+                        <configuration>
+                            <images>
+                                <image>
+                                    <name>localstack/localstack</name>
+                                    <alias>localstack</alias>
+                                    <run>
+                                        <env>
+                                            <TMPDIR>./</TMPDIR>
+                                            <SERVICES>s3,sqs</SERVICES>
+                                        </env>
+                                        <wait>
+                                            <url>http://localhost:8080</url>
+                                            <time>30000</time>
+                                            <log>Ready.</log>
+                                        </wait>
+                                        <ports>
+                                            <port>4566:4566</port>
+                                        </ports>
+                                    </run>
+                                </image>
+                            </images>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>docker-stop</id>
+                        <phase>post-integration-test</phase>
+                        <goals>
+                            <goal>stop</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
         <pluginManagement>
             <plugins>
                 <plugin>
@@ -220,5 +318,6 @@
                 </plugins>
             </build>
         </profile>
+
     </profiles>
 </project>

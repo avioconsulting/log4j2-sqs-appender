@@ -3,7 +3,6 @@ package com.avioconsulting.log4j.sqs;
 import com.avioconsulting.log4j.sqs.client.ConnectorClient;
 import com.avioconsulting.log4j.sqs.processor.LogEventProcessor;
 import com.avioconsulting.log4j.sqs.processor.ProcessorAttributes;
-import com.avioconsulting.log4j.sqs.processor.ProcessorType;
 import com.avioconsulting.log4j.sqs.processor.ProcessorSupplier;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -18,12 +17,12 @@ import java.util.Objects;
 
 public class SqsManager extends AbstractManager {
     private final Configuration configuration;
-    private String queueName;
-    private String bucketName;
-    private String largeMessageQueueName;
-    private Integer maxMessageBytes;
+    private final String queueName;
+    private final String bucketName;
+    private final String largeMessageQueueName;
+    private final Integer maxMessageBytes;
     private final String largeMessageMode;
-    private ConnectorClient connectorClient;
+    private final ConnectorClient connectorClient;
 
     private static final Logger classLogger = LogManager.getLogger(SqsManager.class);
 
@@ -44,36 +43,15 @@ public class SqsManager extends AbstractManager {
         this.maxMessageBytes = maxMessageBytes == null ? 250000 : maxMessageBytes;
         this.largeMessageMode = largeMessageMode;
         this.connectorClient = connectorClient;
-
-    }
-
-    public Configuration getConfiguration() {
-        return configuration;
-    }
-
-    public void startup() {
-        // This default implementation does nothing
     }
 
     public void send(final Layout<?> layout, final LogEvent event) {
-        LogEventProcessor logEventProcessor = ProcessorSupplier.selectProcessor(ProcessorType.DEFAULT.name());
-        String messageMode = ProcessorType.DEFAULT.name();
+        LogEventProcessor logEventProcessor = ProcessorSupplier.selectProcessor(largeMessageMode);
         String message = new String(layout.toByteArray(event), StandardCharsets.UTF_8);
         int messageLength = message.getBytes().length;
         classLogger.debug("Message length: {}", messageLength);
-        String queueUrl = connectorClient.getQueueURL(queueName);
-
-        if(ProcessorType.FIFO.name().equals(largeMessageMode)){
-            queueUrl = connectorClient.getLargeQueueUrl(largeMessageQueueName);
-        }
-
-        if(messageLength > maxMessageBytes ){
-            logEventProcessor = ProcessorSupplier.selectProcessor(largeMessageMode);
-            messageMode = largeMessageMode;
-        }
-
-        ProcessorAttributes processorAttributes = new ProcessorAttributes(message,queueUrl,maxMessageBytes, bucketName);
-        this.connectorClient.sendMessages(logEventProcessor.process(processorAttributes),messageMode);
+        ProcessorAttributes processorAttributes = new ProcessorAttributes(message, maxMessageBytes, bucketName);
+        this.connectorClient.sendMessages(logEventProcessor.process(processorAttributes), largeMessageMode, queueName, largeMessageQueueName);
 
     }
 

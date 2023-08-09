@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration packages="com.avioconsulting.log4j.sqs">
+    <Appenders>
+        <SQS name="EXTENDED"
+             awsAccessKey="${sys:awsAccessKey}"
+             awsRegion="${sys:awsRegion}"
+             awsSecretKey="${sys:awsSecretKey}"
+             queueName="${sys:awsQueueName}"
+             largeMessageMode="EXTENDED"
+             largeMessageQueueName="extended-${sys:awsLargeMessageQueueName}"
+             s3BucketName="${sys:awsBucketName}"
+             maxMessageBytes="${sys:maxMessageBytes}"
+             endpointURL="${sys:awsEndpointURL}">
+            <PatternLayout pattern="[%p] - %m%n"/>
+        </SQS>
+        <SQS name="FIFO"
+             awsAccessKey="${sys:awsAccessKey}"
+             awsRegion="${sys:awsRegion}"
+             awsSecretKey="${sys:awsSecretKey}"
+             maxBatchOpenMs="200"
+             maxBatchSize="1"
+             maxInflightOutboundBatches="1"
+             queueName="${sys:awsQueueName}"
+             largeMessageMode="FIFO"
+             largeMessageQueueName="${sys:awsLargeMessageQueueName}.fifo"
+             maxMessageBytes="${sys:maxMessageBytes}"
+             endpointURL="${sys:awsEndpointURL}">
+            <PatternLayout pattern="[%p] - %m%n"/>
+        </SQS>
+        <SQS name="DISCARD"
+             awsAccessKey="${sys:awsAccessKey}"
+             awsRegion="${sys:awsRegion}"
+             awsSecretKey="${sys:awsSecretKey}"
+             maxBatchOpenMs="200"
+             maxBatchSize="1"
+             maxInflightOutboundBatches="1"
+             queueName="${sys:awsQueueName}"
+             largeMessageQueueName="discard-${sys:awsLargeMessageQueueName}"
+             largeMessageMode="DISCARD"
+             maxMessageBytes="${sys:maxMessageBytes}"
+             endpointURL="${sys:awsEndpointURL}">
+            <PatternLayout pattern="[%p] - %m%n"/>
+        </SQS>
+        <SQS name="TRUNCATE"
+             awsAccessKey="${sys:awsAccessKey}"
+             awsRegion="${sys:awsRegion}"
+             awsSecretKey="${sys:awsSecretKey}"
+             maxBatchOpenMs="200"
+             maxBatchSize="1"
+             maxInflightOutboundBatches="1"
+             queueName="${sys:awsQueueName}"
+             largeMessageMode="TRUNCATE"
+             largeMessageQueueName="truncate-${sys:awsLargeMessageQueueName}"
+             maxMessageBytes="${sys:maxMessageBytes}"
+             endpointURL="${sys:awsEndpointURL}">
+            <PatternLayout pattern="[%p] - %m%n"/>
+        </SQS>
+        <SQS name="S3"
+             awsAccessKey="${sys:awsAccessKey}"
+             awsRegion="${sys:awsRegion}"
+             awsSecretKey="${sys:awsSecretKey}"
+             queueName="${sys:awsQueueName}"
+             largeMessageMode="S3"
+             s3BucketName="${sys:awsBucketName}"
+             maxMessageBytes="${sys:maxMessageBytes}"
+             endpointURL="${sys:awsEndpointURL}">
+            <PatternLayout pattern="[%p] - %m%n"/>
+        </SQS>
+        <Console name="RootConsole" target="SYSTEM_OUT">
+            <PatternLayout pattern="%d{ISO8601} %c{1} [%t] %p - %m%n"/>
+        </Console>
+    </Appenders>
+    <Loggers>
+        <Root level="DEBUG">
+            <AppenderRef ref="RootConsole"/>
+        </Root>
+        <Logger name="com.avioconsulting.log4j.sqs.s3" level="DEBUG" additivity="false">
+            <AppenderRef ref="S3"/>
+        </Logger>
+        <Logger name="com.avioconsulting.log4j.sqs.truncate" level="DEBUG" additivity="false">
+            <AppenderRef ref="TRUNCATE"/>
+        </Logger>
+        <Logger name="com.avioconsulting.log4j.sqs.discard" level="DEBUG" additivity="false">
+            <AppenderRef ref="DISCARD"/>
+        </Logger>
+        <Logger name="com.avioconsulting.log4j.sqs.fifo" level="DEBUG" additivity="false">
+            <AppenderRef ref="FIFO"/>
+        </Logger>
+        <Logger name="com.avioconsulting.log4j.sqs.extended" level="DEBUG" additivity="false">
+          <AppenderRef ref="EXTENDED"/>
+        </Logger>
+    </Loggers>
+</Configuration>

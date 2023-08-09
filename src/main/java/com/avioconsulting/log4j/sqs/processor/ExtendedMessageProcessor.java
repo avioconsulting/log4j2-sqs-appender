@@ -2,8 +2,10 @@ package com.avioconsulting.log4j.sqs.processor;
 
 import com.amazonaws.services.sqs.model.SendMessageRequest;
 import com.avioconsulting.log4j.sqs.wrapper.MessageRequestWrapper;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
-import java.util.Arrays;
+import java.util.Collections;
 
 /**
  * ExtendedMessageProcessor takes the input message adding queueUrl but no modifies message content
@@ -12,13 +14,16 @@ import java.util.Arrays;
  */
 public class ExtendedMessageProcessor implements LogEventProcessor {
 
-	@Override public MessageRequestWrapper process(ProcessorAttributes processorAttributes) {
-		SendMessageRequest sendMessageRequest = new SendMessageRequest();
-		sendMessageRequest.setMessageBody(processorAttributes.getMessage());
-		sendMessageRequest.setQueueUrl(processorAttributes.getQueueUrl());
-		MessageRequestWrapper messageRequestWrapper = new MessageRequestWrapper();
-		messageRequestWrapper.setSendMessageRequest(Arrays.asList(sendMessageRequest));
-		return messageRequestWrapper;
-	}
+    private static final Logger logger = LogManager.getLogger(ExtendedMessageProcessor.class);
+
+    @Override
+    public MessageRequestWrapper process(ProcessorAttributes processorAttributes) {
+        logger.debug("Sending EXTENDED message.");
+        SendMessageRequest sendMessageRequest = new SendMessageRequest();
+        sendMessageRequest.setMessageBody(processorAttributes.getMessage());
+        MessageRequestWrapper messageRequestWrapper = new MessageRequestWrapper();
+        messageRequestWrapper.setSendMessageRequest(Collections.singletonList(sendMessageRequest));
+        return messageRequestWrapper;
+    }
 
 }
