@@ -24,8 +24,20 @@ public class ConnectorClient {
 
 	private final ConnectorClientAttributes connectorClientAttributes;
 
-	public ConnectorClient(ConnectorClientAttributes attributes) {
+	public ConnectorClient(ConnectorClientAttributes attributes, String largeMessageMode) {
 		this.connectorClientAttributes = attributes;
+		initAWSClients(largeMessageMode);
+	}
+
+	public void initAWSClients(String largeMessageMode){
+		if (ProcessorType.EXTENDED.name().equals(largeMessageMode)) {
+			initS3Client(connectorClientAttributes);
+			initSqsExtendedClient(connectorClientAttributes);
+		} else if (ProcessorType.S3.name().equals(largeMessageMode)) {
+			initS3Client(connectorClientAttributes);
+		} else {
+			initSQSClient(connectorClientAttributes);
+		}
 	}
 
 	private void initS3Client(ConnectorClientAttributes attributes) {
@@ -95,7 +107,7 @@ public class ConnectorClient {
 		if (ProcessorType.EXTENDED.name().equals(processorType)){
 			sendExtendedMessages(messageList,largeMessageQueueName);
 		} else if (ProcessorType.S3.name().equals(processorType)) {
-			initS3Client(connectorClientAttributes);
+			//initS3Client(connectorClientAttributes);
 			messageList.getPutObjectRequest().forEach(message -> this.awsS3Client.putObject(message));
 		} else {
 			sendFIFOTruncateDiscardedMessages(messageList,queueName,largeMessageQueueName,processorType);
@@ -103,8 +115,8 @@ public class ConnectorClient {
 	}
 
 	private void sendExtendedMessages(MessageRequestWrapper messageList, String queueName) {
-		initS3Client(connectorClientAttributes);
-		initSqsExtendedClient(connectorClientAttributes);
+		//initS3Client(connectorClientAttributes);
+		//initSqsExtendedClient(connectorClientAttributes);
 		String queueUrl = this.awsSQSExtendedClient.getQueueUrl(queueName).getQueueUrl();
 		messageList.getSendMessageRequest().forEach(message -> {
 			message.setQueueUrl(queueUrl);
@@ -113,7 +125,7 @@ public class ConnectorClient {
 	}
 
 	private void sendFIFOTruncateDiscardedMessages(MessageRequestWrapper messageList, String queueName, String largeMessageQueueName, String processorType) {
-		initSQSClient(connectorClientAttributes);
+		//initSQSClient(connectorClientAttributes);
 		String queueUrl = null;
 		if (ProcessorType.DEFAULT.name().equals(processorType)) {
 			queueUrl = awsSQSAsyncClient.getQueueUrl(queueName).getQueueUrl();

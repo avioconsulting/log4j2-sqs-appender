@@ -117,7 +117,8 @@ class SqsAppender extends AbstractAppender {
                     maxBatchSize,
                     maxInflightOutboundBatches,
                     s3BucketName,
-                    endpointURL);
+                    endpointURL,
+                    largeMessageMode);
             final SqsManager manager = new SqsManager(getConfiguration(), getConfiguration().getLoggerContext(),
                     getName(), queueName, largeMessageQueueName, maxMessageBytes, largeMessageMode, s3BucketName,
                     connectorClient);

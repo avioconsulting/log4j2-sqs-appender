@@ -43,7 +43,6 @@ public class SqsManager extends AbstractManager {
         this.maxMessageBytes = maxMessageBytes == null ? 250000 : maxMessageBytes;
         this.largeMessageMode = largeMessageMode;
         this.connectorClient = connectorClient;
-
     }
 
     public void send(final Layout<?> layout, final LogEvent event) {

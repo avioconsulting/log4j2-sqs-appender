@@ -17,7 +17,8 @@ public class ConnectorClientFactory {
                                                         Integer maxBatchSize,
                                                         Integer maxInflightOutboundBatches,
                                                         String s3BucketName,
-                                                        String endpointURL) {
+                                                        String endpointURL,
+                                                        String largeMessageMode) {
         AWSStaticCredentialsProvider credentialsProvider = new AWSStaticCredentialsProvider(
                 new BasicAWSCredentials(awsAccessKey, awsSecretKey));
         Regions r = Regions.fromName(awsRegion);
@@ -30,6 +31,6 @@ public class ConnectorClientFactory {
                 s3BucketName,
                 endpointURL);
 
-        return new ConnectorClient(attributes);
+        return new ConnectorClient(attributes, largeMessageMode);
     }
 }
