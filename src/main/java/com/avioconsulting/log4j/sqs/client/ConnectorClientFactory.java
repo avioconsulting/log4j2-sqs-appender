@@ -10,13 +10,27 @@ public class ConnectorClientFactory {
     private ConnectorClientFactory() {
     }
 
-    public static ConnectorClient createConnectorClient(String awsAccessKey, String awsSecretKey, String awsRegion, Integer maxBatchOpenMs, Integer maxBatchSize, Integer maxInflightOutboundBatches, String s3BucketName) {
+    public static ConnectorClient createConnectorClient(String awsAccessKey,
+                                                        String awsSecretKey,
+                                                        String awsRegion,
+                                                        Integer maxBatchOpenMs,
+                                                        Integer maxBatchSize,
+                                                        Integer maxInflightOutboundBatches,
+                                                        String s3BucketName,
+                                                        String endpointURL,
+                                                        String largeMessageMode) {
         AWSStaticCredentialsProvider credentialsProvider = new AWSStaticCredentialsProvider(
                 new BasicAWSCredentials(awsAccessKey, awsSecretKey));
         Regions r = Regions.fromName(awsRegion);
         Region region = Region.getRegion(r);
-        ConnectorClientAttributes attributes = new ConnectorClientAttributes(credentialsProvider, region,
-                maxBatchOpenMs, maxBatchSize, maxInflightOutboundBatches, s3BucketName);
-        return new ConnectorClient(attributes);
+        ConnectorClientAttributes attributes = new ConnectorClientAttributes(credentialsProvider,
+                region,
+                maxBatchOpenMs,
+                maxBatchSize,
+                maxInflightOutboundBatches,
+                s3BucketName,
+                endpointURL);
+
+        return new ConnectorClient(attributes, largeMessageMode);
     }
 }

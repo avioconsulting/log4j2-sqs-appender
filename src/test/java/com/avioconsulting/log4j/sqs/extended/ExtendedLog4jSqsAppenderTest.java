@@ -3,7 +3,9 @@ package com.avioconsulting.log4j.sqs.extended;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.sqs.buffered.AmazonSQSBufferedAsyncClient;
-import com.amazonaws.services.sqs.model.*;
+import com.amazonaws.services.sqs.model.Message;
+import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
+import com.amazonaws.services.sqs.model.ReceiveMessageResult;
 import com.avioconsulting.log4j.sqs.util.AppenderTestUtils;
 import com.avioconsulting.log4j.sqs.util.PropertiesProvider;
 import org.apache.commons.io.IOUtils;
@@ -23,7 +25,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
 import static com.avioconsulting.log4j.sqs.util.PropertiesProvider.AWS_S3_BUCKET_NAME;
-import static com.avioconsulting.log4j.sqs.util.PropertiesProvider.AWS_SQS_QUEUE_NAME;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
@@ -74,7 +75,7 @@ public class ExtendedLog4jSqsAppenderTest {
             }
         }
 
-        if(!received) {
+        if(!received || message == null) {
             fail("No messages received!");
         }
 

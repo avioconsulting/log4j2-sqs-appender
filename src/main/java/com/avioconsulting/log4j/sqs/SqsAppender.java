@@ -35,11 +35,6 @@ class SqsAppender extends AbstractAppender {
         return new Builder<B>().asBuilder();
     }
 
-    @Override
-    public void start() {
-        super.start();
-    }
-
     public void append(LogEvent event) {
         try {
             manager.send(getLayout(), event);
@@ -95,6 +90,9 @@ class SqsAppender extends AbstractAppender {
         private String largeMessageMode;
         @PluginBuilderAttribute
         private String s3BucketName;
+        @PluginBuilderAttribute
+        private String endpointURL;
+
 
         @Override
         public SqsAppender build() {
@@ -112,7 +110,15 @@ class SqsAppender extends AbstractAppender {
                 throw new RuntimeException("No largeMessageQueueName provided for FIFO largeMessageMode");
             }
 
-            ConnectorClient connectorClient = ConnectorClientFactory.createConnectorClient(awsAccessKey, awsSecretKey, awsRegion, maxBatchOpenMs, maxBatchSize, maxInflightOutboundBatches, s3BucketName);
+            ConnectorClient connectorClient = ConnectorClientFactory.createConnectorClient(awsAccessKey,
+                    awsSecretKey,
+                    awsRegion,
+                    maxBatchOpenMs,
+                    maxBatchSize,
+                    maxInflightOutboundBatches,
+                    s3BucketName,
+                    endpointURL,
+                    largeMessageMode);
             final SqsManager manager = new SqsManager(getConfiguration(), getConfiguration().getLoggerContext(),
                     getName(), queueName, largeMessageQueueName, maxMessageBytes, largeMessageMode, s3BucketName,
                     connectorClient);

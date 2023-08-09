@@ -5,7 +5,7 @@ import com.avioconsulting.log4j.sqs.wrapper.MessageRequestWrapper;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.util.Arrays;
+import java.util.Collections;
 
 /**
  * ExtendedMessageProcessor takes the input message adding queueUrl but no modifies message content
@@ -22,7 +22,7 @@ public class ExtendedMessageProcessor implements LogEventProcessor {
         SendMessageRequest sendMessageRequest = new SendMessageRequest();
         sendMessageRequest.setMessageBody(processorAttributes.getMessage());
         MessageRequestWrapper messageRequestWrapper = new MessageRequestWrapper();
-        messageRequestWrapper.setSendMessageRequest(Arrays.asList(sendMessageRequest));
+        messageRequestWrapper.setSendMessageRequest(Collections.singletonList(sendMessageRequest));
         return messageRequestWrapper;
     }
 

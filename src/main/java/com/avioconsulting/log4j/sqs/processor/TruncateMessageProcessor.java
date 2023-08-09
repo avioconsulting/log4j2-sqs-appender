@@ -10,7 +10,7 @@ import java.nio.CharBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.CharsetEncoder;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
+import java.util.Collections;
 
 /**
  * Truncates the incoming message if its length is larger than 256kb
@@ -28,7 +28,7 @@ public class TruncateMessageProcessor implements LogEventProcessor {
         sendMessageRequest.setMessageBody(truncateStringByByteLength(processorAttributes.getMessage(),
                 StandardCharsets.UTF_8.name(), processorAttributes.getMaxMessageSize()));
         MessageRequestWrapper messageRequestWrapper = new MessageRequestWrapper();
-        messageRequestWrapper.setSendMessageRequest(Arrays.asList(sendMessageRequest));
+        messageRequestWrapper.setSendMessageRequest(Collections.singletonList(sendMessageRequest));
         return messageRequestWrapper;
     }
 

@@ -5,7 +5,7 @@ import com.avioconsulting.log4j.sqs.wrapper.MessageRequestWrapper;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.util.Arrays;
+import java.util.Collections;
 
 /**
  * Default implementation will create a wrapper message within an unique message element.
@@ -24,7 +24,7 @@ public class DefaultMessageProcessor implements LogEventProcessor {
         SendMessageRequest sendMessageRequest = new SendMessageRequest();
         sendMessageRequest.setMessageBody(processorAttributes.getMessage());
         MessageRequestWrapper messageRequestWrapper = new MessageRequestWrapper();
-        messageRequestWrapper.setSendMessageRequest(Arrays.asList(sendMessageRequest));
+        messageRequestWrapper.setSendMessageRequest(Collections.singletonList(sendMessageRequest));
         return messageRequestWrapper;
     }
 

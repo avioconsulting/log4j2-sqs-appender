@@ -1,7 +1,10 @@
 package com.avioconsulting.log4j.sqs.truncate;
 
 import com.amazonaws.services.sqs.buffered.AmazonSQSBufferedAsyncClient;
-import com.amazonaws.services.sqs.model.*;
+import com.amazonaws.services.sqs.model.GetQueueAttributesResult;
+import com.amazonaws.services.sqs.model.Message;
+import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
+import com.amazonaws.services.sqs.model.ReceiveMessageResult;
 import com.avioconsulting.log4j.sqs.processor.TruncateMessageProcessor;
 import com.avioconsulting.log4j.sqs.util.AppenderTestUtils;
 import com.avioconsulting.log4j.sqs.util.PropertiesProvider;
@@ -16,7 +19,6 @@ import java.util.Collections;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
-import static com.avioconsulting.log4j.sqs.util.PropertiesProvider.AWS_SQS_LARGE_QUEUE_NAME;
 import static com.avioconsulting.log4j.sqs.util.PropertiesProvider.MAX_MESSAGE_BYTES;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;

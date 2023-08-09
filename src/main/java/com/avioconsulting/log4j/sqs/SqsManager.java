@@ -17,12 +17,12 @@ import java.util.Objects;
 
 public class SqsManager extends AbstractManager {
     private final Configuration configuration;
-    private String queueName;
-    private String bucketName;
-    private String largeMessageQueueName;
-    private Integer maxMessageBytes;
+    private final String queueName;
+    private final String bucketName;
+    private final String largeMessageQueueName;
+    private final Integer maxMessageBytes;
     private final String largeMessageMode;
-    private ConnectorClient connectorClient;
+    private final ConnectorClient connectorClient;
 
     private static final Logger classLogger = LogManager.getLogger(SqsManager.class);
 
@@ -43,25 +43,15 @@ public class SqsManager extends AbstractManager {
         this.maxMessageBytes = maxMessageBytes == null ? 250000 : maxMessageBytes;
         this.largeMessageMode = largeMessageMode;
         this.connectorClient = connectorClient;
-
-    }
-
-    public Configuration getConfiguration() {
-        return configuration;
-    }
-
-    public void startup() {
-        // This default implementation does nothing
     }
 
     public void send(final Layout<?> layout, final LogEvent event) {
         LogEventProcessor logEventProcessor = ProcessorSupplier.selectProcessor(largeMessageMode);
         String message = new String(layout.toByteArray(event), StandardCharsets.UTF_8);
-        String messageMode = largeMessageMode;
         int messageLength = message.getBytes().length;
         classLogger.debug("Message length: {}", messageLength);
         ProcessorAttributes processorAttributes = new ProcessorAttributes(message, maxMessageBytes, bucketName);
-        this.connectorClient.sendMessages(logEventProcessor.process(processorAttributes), messageMode, queueName, largeMessageQueueName);
+        this.connectorClient.sendMessages(logEventProcessor.process(processorAttributes), largeMessageMode, queueName, largeMessageQueueName);
 
     }
 

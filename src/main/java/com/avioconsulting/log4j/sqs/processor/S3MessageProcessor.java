@@ -9,7 +9,7 @@ import org.apache.logging.log4j.Logger;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.UUID;
 
 /**
@@ -31,7 +31,7 @@ public class S3MessageProcessor implements LogEventProcessor {
         InputStream stream = new ByteArrayInputStream(processorAttributes.getMessage().getBytes(StandardCharsets.UTF_8));
         PutObjectRequest putObjectRequest = new PutObjectRequest(processorAttributes.getBucketName(), UUID.randomUUID().toString(), stream, objectMetadata);
         MessageRequestWrapper messageRequestWrapper = new MessageRequestWrapper();
-        messageRequestWrapper.setPutObjectRequest(Arrays.asList(putObjectRequest));
+        messageRequestWrapper.setPutObjectRequest(Collections.singletonList(putObjectRequest));
         return messageRequestWrapper;
     }
 
