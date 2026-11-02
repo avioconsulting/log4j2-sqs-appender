@@ -253,7 +253,9 @@ public class AwsConnectorClient implements ConnectorClient {
                         .region(attributes.getAwsRegion())
                         .credentialsProvider(attributes.getCredentialsProvider());
                 if (endpoint != null) {
-                    s3Builder.endpointOverride(endpoint);
+                    // Path-style keeps bucket names out of the host, so one endpoint URL works for
+                    // both SQS and S3 (LocalStack, or a private endpoint).
+                    s3Builder.endpointOverride(endpoint).forcePathStyle(true);
                 }
                 this.s3Client = s3Builder.build();
             } else {

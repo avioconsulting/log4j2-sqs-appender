@@ -121,7 +121,7 @@ Optional Configurations
   200. A value of 0 turns off batching.
 * `maxInflightOutboundBatches` - this attribute is accepted so existing configurations keep working, but it has no
   effect. The AWS SDK for Java 2.x does not have this setting.
-* `endpointURL` - allows using VPC private network for sending messages. It's not required.
+* `endpointURL` - allows using VPC private network for sending messages. It's not required. When it is set, S3 uploads use path-style addressing so the same URL can serve SQS and S3.
 * `largeMessagesEnabled` - version 1.1.0 attribute. If it is `true` and `largeMessageMode` is not set, the appender
   uses `FIFO` mode. New configurations should use `largeMessageMode`.
 

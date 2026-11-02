@@ -47,7 +47,7 @@ public class AppenderTestUtils {
                 .credentialsProvider(credentialsProvider());
 
         if (ENDPOINT_URL != null && !ENDPOINT_URL.isEmpty()) {
-            clientBuilder.endpointOverride(URI.create(ENDPOINT_URL));
+            clientBuilder.endpointOverride(URI.create(ENDPOINT_URL)).forcePathStyle(true);
         }
 
         return clientBuilder.build();
