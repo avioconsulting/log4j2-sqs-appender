@@ -3,7 +3,6 @@ package com.avioconsulting.log4j.sqs;
 import com.avioconsulting.log4j.sqs.client.ConnectorClient;
 import com.avioconsulting.log4j.sqs.client.ConnectorClientFactory;
 import com.avioconsulting.log4j.sqs.processor.ProcessorType;
-import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.*;
 import org.apache.logging.log4j.core.appender.AbstractAppender;
@@ -11,6 +10,7 @@ import org.apache.logging.log4j.core.config.plugins.Plugin;
 import org.apache.logging.log4j.core.config.plugins.PluginBuilderAttribute;
 import org.apache.logging.log4j.core.config.plugins.PluginBuilderFactory;
 import org.apache.logging.log4j.core.config.plugins.validation.constraints.Required;
+import org.apache.logging.log4j.status.StatusLogger;
 
 import java.io.Serializable;
 import java.util.Objects;
@@ -52,6 +52,10 @@ class SqsAppender extends AbstractAppender {
         return stopped;
     }
 
+    SqsManager getManager() {
+        return manager;
+    }
+
     @Override
     public String toString() {
         return "SqsAppender{" +
@@ -63,7 +67,7 @@ class SqsAppender extends AbstractAppender {
     public static class Builder<B extends Builder<B>> extends AbstractAppender.Builder<B>
             implements org.apache.logging.log4j.core.util.Builder<SqsAppender> {
 
-        private static final Logger logger = LogManager.getLogger();
+        private static final Logger logger = StatusLogger.getLogger();
         @PluginBuilderAttribute
         @Required(message = "No AWS Access Key provided for SQSAppender")
         private String awsAccessKey;
@@ -92,22 +96,31 @@ class SqsAppender extends AbstractAppender {
         private String s3BucketName;
         @PluginBuilderAttribute
         private String endpointURL;
+        /**
+         * Version 1.1.0 attribute. When true and largeMessageMode is not set, large messages use FIFO mode.
+         */
+        @PluginBuilderAttribute
+        private Boolean largeMessagesEnabled;
 
 
         @Override
         public SqsAppender build() {
             logger.debug("Initializing SQS appender");
 
-            if(ProcessorType.S3.name().equals(largeMessageMode) && s3BucketName.isEmpty()){
+            if (isBlank(largeMessageMode) && Boolean.TRUE.equals(largeMessagesEnabled)) {
+                largeMessageMode = ProcessorType.FIFO.name();
+            }
+
+            if(ProcessorType.S3.name().equals(largeMessageMode) && isBlank(s3BucketName)){
                 throw new RuntimeException("No s3BucketName provided for S3 largeMessageMode");
             }
 
-            if(ProcessorType.EXTENDED.name().equals(largeMessageMode) && s3BucketName.isEmpty()){
+            if(ProcessorType.EXTENDED.name().equals(largeMessageMode) && isBlank(s3BucketName)){
                 throw new RuntimeException("No s3BucketName provided for EXTENDED largeMessageMode");
             }
 
-            if(ProcessorType.FIFO.name().equals(largeMessageMode) && (largeMessageQueueName.isEmpty() || !largeMessageQueueName.endsWith(".fifo")) ){
-                throw new RuntimeException("No largeMessageQueueName provided for FIFO largeMessageMode");
+            if(ProcessorType.FIFO.name().equals(largeMessageMode) && !isBlank(largeMessageQueueName) && !largeMessageQueueName.endsWith(".fifo")){
+                throw new RuntimeException("largeMessageQueueName must end with .fifo for FIFO largeMessageMode");
             }
 
             ConnectorClient connectorClient = ConnectorClientFactory.createConnectorClient(awsAccessKey,
@@ -123,6 +136,10 @@ class SqsAppender extends AbstractAppender {
                     getName(), queueName, largeMessageQueueName, maxMessageBytes, largeMessageMode, s3BucketName,
                     connectorClient);
             return new SqsAppender(getName(), getLayout(), getFilter(), isIgnoreExceptions(), manager);
+        }
+
+        private static boolean isBlank(String value) {
+            return value == null || value.trim().isEmpty();
         }
 
     }

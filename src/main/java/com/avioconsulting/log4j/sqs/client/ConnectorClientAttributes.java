@@ -1,7 +1,7 @@
 package com.avioconsulting.log4j.sqs.client;
 
-import com.amazonaws.auth.AWSStaticCredentialsProvider;
-import com.amazonaws.regions.Region;
+import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
+import software.amazon.awssdk.regions.Region;
 
 public class ConnectorClientAttributes {
 
@@ -10,10 +10,10 @@ public class ConnectorClientAttributes {
 	private final Integer maxBatchSize;
 	private final Integer maxInflightOutboundBatches;
 	private final String s3BucketName;
-	private final AWSStaticCredentialsProvider credentialsProvider;
+	private final AwsCredentialsProvider credentialsProvider;
 	private final String endpointURL;
 
-	public ConnectorClientAttributes(AWSStaticCredentialsProvider credentialsProvider, Region awsRegion, Integer maxBatchOpenMs,
+	public ConnectorClientAttributes(AwsCredentialsProvider credentialsProvider, Region awsRegion, Integer maxBatchOpenMs,
 			Integer maxBatchSize, Integer maxInflightOutboundBatches, String s3BucketName, String endpointURL) {
 		this.credentialsProvider = credentialsProvider;
 		this.maxBatchOpenMs = maxBatchOpenMs;
@@ -36,6 +36,9 @@ public class ConnectorClientAttributes {
 		return maxBatchSize;
 	}
 
+	/**
+	 * Kept for configuration compatibility. SDK v2 has no equivalent setting, so it is not used.
+	 */
 	public Integer getMaxInflightOutboundBatches() {
 		return maxInflightOutboundBatches;
 	}
@@ -44,7 +47,7 @@ public class ConnectorClientAttributes {
 		return s3BucketName;
 	}
 
-	public AWSStaticCredentialsProvider getCredentialsProvider() {
+	public AwsCredentialsProvider getCredentialsProvider() {
 		return credentialsProvider;
 	}
 

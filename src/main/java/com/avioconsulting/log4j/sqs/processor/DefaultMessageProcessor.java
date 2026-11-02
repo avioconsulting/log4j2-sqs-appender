@@ -1,28 +1,26 @@
 package com.avioconsulting.log4j.sqs.processor;
 
-import com.amazonaws.services.sqs.model.SendMessageRequest;
 import com.avioconsulting.log4j.sqs.wrapper.MessageRequestWrapper;
-import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.status.StatusLogger;
+import software.amazon.awssdk.services.sqs.model.SendMessageRequest;
 
 import java.util.Collections;
 
 /**
  * Default implementation will create a wrapper message within an unique message element.
  * Message will be logged without modifications.
- *
- * @param
- * @return
  */
 public class DefaultMessageProcessor implements LogEventProcessor {
 
-    private static final Logger logger = LogManager.getLogger(DefaultMessageProcessor.class);
+    private static final Logger logger = StatusLogger.getLogger();
 
     @Override
     public MessageRequestWrapper process(ProcessorAttributes processorAttributes) {
         logger.debug("Sending DEFAULT message.");
-        SendMessageRequest sendMessageRequest = new SendMessageRequest();
-        sendMessageRequest.setMessageBody(processorAttributes.getMessage());
+        SendMessageRequest sendMessageRequest = SendMessageRequest.builder()
+                .messageBody(processorAttributes.getMessage())
+                .build();
         MessageRequestWrapper messageRequestWrapper = new MessageRequestWrapper();
         messageRequestWrapper.setSendMessageRequest(Collections.singletonList(sendMessageRequest));
         return messageRequestWrapper;

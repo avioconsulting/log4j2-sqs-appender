@@ -1,9 +1,10 @@
 package com.avioconsulting.log4j.sqs.processor;
 
-import com.amazonaws.services.sqs.model.SendMessageRequest;
+import com.avioconsulting.log4j.sqs.SqsLimits;
 import com.avioconsulting.log4j.sqs.wrapper.MessageRequestWrapper;
-import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.status.StatusLogger;
+import software.amazon.awssdk.services.sqs.model.SendMessageRequest;
 
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
@@ -21,24 +22,30 @@ import java.util.UUID;
  */
 public class FifoMessageProcessor implements LogEventProcessor {
 
-    private static final Logger logger = LogManager.getLogger(FifoMessageProcessor.class);
+    /**
+     * Bytes kept free in each part for the "currentPart=..|totalParts=..|uuid=..|message=" header.
+     */
+    static final int PART_HEADER_RESERVED_BYTES = 128;
+    private static final Logger logger = StatusLogger.getLogger();
 
     @Override
     public MessageRequestWrapper process(ProcessorAttributes processorAttributes) {
         List<SendMessageRequest> sendMessageRequestList = new ArrayList<>();
         UUID uuid = UUID.randomUUID();
         logger.debug("Splitting large message. Large message UUID: {}", uuid);
-        String[] splitMessage = splitStringByByteLength(processorAttributes.getMessage(), "UTF-8", processorAttributes.getMaxMessageSize());
-        MessageRequestWrapper messageRequestWrapper = new MessageRequestWrapper();
+        int partSize = Math.min(processorAttributes.getMaxMessageSize(),
+                SqsLimits.MAX_MESSAGE_BYTES - PART_HEADER_RESERVED_BYTES);
+        String[] splitMessage = splitStringByByteLength(processorAttributes.getMessage(), "UTF-8", partSize);
 
         for (int i = 0; i < splitMessage.length; i++) {
             logger.debug("Sending message {} of {}", i + 1, splitMessage.length);
-            SendMessageRequest sendMessageRequest = new SendMessageRequest();
-            sendMessageRequest.setMessageBody(String.format("currentPart=%d|totalParts=%d|uuid=%s|message=%s", i + 1, splitMessage.length, uuid, splitMessage[i]));
-            sendMessageRequest.setMessageGroupId(uuid.toString());
-            sendMessageRequestList.add(sendMessageRequest);
-            messageRequestWrapper.setSendMessageRequest(sendMessageRequestList);
+            sendMessageRequestList.add(SendMessageRequest.builder()
+                    .messageBody(String.format("currentPart=%d|totalParts=%d|uuid=%s|message=%s", i + 1, splitMessage.length, uuid, splitMessage[i]))
+                    .messageGroupId(uuid.toString())
+                    .build());
         }
+        MessageRequestWrapper messageRequestWrapper = new MessageRequestWrapper();
+        messageRequestWrapper.setSendMessageRequest(sendMessageRequestList);
         return messageRequestWrapper;
     }
 
