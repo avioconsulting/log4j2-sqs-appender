@@ -226,7 +226,7 @@ Mule sample
 * about 500 KB, over 256 KiB and under 1 MiB, sent as one `SendMessage` call
 * about 1.1 MB, over `maxMessageBytes`
 
-Each message ends with `###SQS-APPENDER-TEST-END###`. If that marker is present in the stored event, the full message was sent. The sample sets `largeMessageMode="DISCARD"`, so the 1.1 MB event is replaced by the short discard notice and the marker is not present. Change `largeMessageMode` in `samples/mule-sqs-appender-test/src/main/resources/log4j2.xml` to try `TRUNCATE`, `FIFO`, `EXTENDED`, or `S3`.
+Each message ends with `###SQS-APPENDER-TEST-END###`. If that marker is present in the stored event, the full message was sent. The sample sets `largeMessageMode="TRUNCATE"`, so the 1.1 MB event is cut to `maxMessageBytes` and the marker is not present. Change `largeMessageMode` in `samples/mule-sqs-appender-test/src/main/resources/log4j2.xml` to try `DISCARD`, `FIFO`, `EXTENDED`, or `S3`.
 
 The sample is not part of this repository's Maven build. Open it in Anypoint Studio. See `samples/mule-sqs-appender-test/README.md`.
 

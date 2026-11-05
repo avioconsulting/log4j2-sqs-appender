@@ -13,8 +13,8 @@
         </RollingFile>
 
         <!-- Create the queue sqs-appender-sample in awsRegion before starting.
-             DISCARD replaces a message over maxMessageBytes with a short notice.
-             Change largeMessageMode to TRUNCATE, FIFO, EXTENDED, or S3 to try the other paths.
+             TRUNCATE cuts a message over maxMessageBytes down to that size and sends it.
+             Change largeMessageMode to DISCARD, FIFO, EXTENDED, or S3 to try the other paths.
              EXTENDED and S3 also need s3BucketName. FIFO also needs a queue whose name ends in .fifo. -->
         <SQS name="SQS"
             queueName="sqs-appender-sample"
@@ -22,7 +22,7 @@
             awsAccessKey="${sys:amazon.sqs.access.key}"
             awsSecretKey="${sys:amazon.sqs.secret.key}"
             maxMessageBytes="1000000"
-            largeMessageMode="DISCARD"
+            largeMessageMode="TRUNCATE"
             maxBatchSize="10"
             maxBatchOpenMs="500"
             maxInflightOutboundBatches="5">

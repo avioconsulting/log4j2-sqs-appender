@@ -8,7 +8,7 @@ Small Mule 4.9 application that sends three log events through `log4j2-sqs-appen
 | --- | --- | --- |
 | small | 50,095 bytes | At or under 256 KiB, so it is sent with `SendMessageBatch`. |
 | medium | 500,099 bytes | Over 256 KiB and under `maxMessageBytes` (1,000,000), so it is sent with one `SendMessage`. |
-| large | 1,100,088 bytes | Over 1 MB. This sample sets `largeMessageMode="DISCARD"`, so the queued body is `Can't display log message. Message max size exceeded. max size:1000000`. The end marker is not in that body. |
+| large | 1,100,088 bytes | Over 1 MB. This sample sets `largeMessageMode="TRUNCATE"`, so the queued body is cut to 1,000,000 bytes. The end marker is not in that body. |
 
 The sizes above are the log message text. The SQS body is the compact JSON event, which is a little larger. The small and medium sizes still land on the correct side of 256 KiB and 1 MB after that wrapping.
 
