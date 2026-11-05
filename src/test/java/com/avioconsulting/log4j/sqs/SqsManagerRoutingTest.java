@@ -1,10 +1,13 @@
 package com.avioconsulting.log4j.sqs;
 
 import com.avioconsulting.log4j.sqs.processor.DiscardMessageProcessor;
+import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.core.Appender;
 import org.apache.logging.log4j.core.Layout;
 import org.apache.logging.log4j.core.LogEvent;
 import org.apache.logging.log4j.core.LoggerContext;
+import org.apache.logging.log4j.core.appender.AbstractAppender;
 import org.apache.logging.log4j.core.config.DefaultConfiguration;
 import org.apache.logging.log4j.core.impl.Log4jLogEvent;
 import org.apache.logging.log4j.core.layout.PatternLayout;
@@ -13,6 +16,8 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 import static org.junit.Assert.assertEquals;
@@ -51,6 +56,37 @@ public class SqsManagerRoutingTest {
         assertEquals(1, client.sent.size());
         assertEquals(QUEUE, client.sent.get(0).queueName);
         assertEquals(1_000_000, bytes(client.sent.get(0).request.messageBody()));
+    }
+
+    @Test
+    public void oversizedMessageIsLoggedWithoutTheOriginalBody() {
+        List<LogEvent> captured = new ArrayList<>();
+        Appender capture = new AbstractAppender("oversized-capture", null, null, true, null) {
+            @Override
+            public void append(LogEvent event) {
+                captured.add(event.toImmutable());
+            }
+        };
+        capture.start();
+        org.apache.logging.log4j.core.Logger logger =
+                (org.apache.logging.log4j.core.Logger) LogManager.getLogger(SqsManager.class);
+        logger.addAppender(capture);
+        try {
+            manager(1_000, null).send(layout, event(repeat('x', 2_000)));
+            manager(1_000, "EXTENDED").send(layout, event(repeat('y', 2_000)));
+        } finally {
+            logger.removeAppender(capture);
+            capture.stop();
+        }
+
+        assertEquals(2, captured.size());
+        assertEquals(Level.WARN, captured.get(0).getLevel());
+        String truncated = captured.get(0).getMessage().getFormattedMessage();
+        assertTrue(truncated.contains("2000"));
+        assertTrue(truncated.contains("largeMessageMode=TRUNCATE"));
+        assertFalse(truncated.contains("xxx"));
+        assertEquals(Level.INFO, captured.get(1).getLevel());
+        assertTrue(captured.get(1).getMessage().getFormattedMessage().contains("largeMessageMode=EXTENDED"));
     }
 
     @Test

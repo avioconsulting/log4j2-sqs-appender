@@ -8,6 +8,7 @@ import com.avioconsulting.log4j.sqs.processor.ProcessorSupplier;
 import com.avioconsulting.log4j.sqs.processor.ProcessorType;
 import com.avioconsulting.log4j.sqs.wrapper.MessageRequestWrapper;
 import com.avioconsulting.log4j.sqs.wrapper.S3ObjectRequest;
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.Layout;
 import org.apache.logging.log4j.core.LogEvent;
@@ -40,6 +41,12 @@ public class SqsManager extends AbstractManager {
     private final ConnectorClient connectorClient;
 
     private static final Logger classLogger = StatusLogger.getLogger();
+    /**
+     * Application logger, not the status logger, so truncation and the other oversized-message paths
+     * show up on the same appenders as the rest of the application's logs. The text is short and does
+     * not include the original event, so this log is sent normally and does not re-enter this branch.
+     */
+    private static final Logger oversizedLog = LogManager.getLogger(SqsManager.class);
 
     protected SqsManager(final Configuration configuration,
                          final LoggerContext loggerContext,
@@ -70,6 +77,11 @@ public class SqsManager extends AbstractManager {
             return;
         }
 
+        String mode = largeMessageMode == null || largeMessageMode.trim().isEmpty()
+                ? ProcessorType.TRUNCATE.name()
+                : largeMessageMode;
+        logOversized(messageLength, mode);
+
         LogEventProcessor logEventProcessor = ProcessorSupplier.selectProcessor(largeMessageMode);
         MessageRequestWrapper wrapper = logEventProcessor.process(attributes(message));
         boolean fifo = ProcessorType.FIFO.name().equals(largeMessageMode);
@@ -99,6 +111,16 @@ public class SqsManager extends AbstractManager {
         for (S3ObjectRequest request : wrapper.getPutObjectRequest()) {
             connectorClient.putObject(request);
         }
+    }
+
+    private void logOversized(int messageLength, String mode) {
+        if (ProcessorType.TRUNCATE.name().equals(mode) || ProcessorType.DISCARD.name().equals(mode)) {
+            oversizedLog.warn("Log message of {} bytes exceeds maxMessageBytes of {}. largeMessageMode={}. The original event was not sent whole.",
+                    messageLength, maxMessageBytes, mode);
+            return;
+        }
+        oversizedLog.info("Log message of {} bytes exceeds maxMessageBytes of {}. largeMessageMode={}.",
+                messageLength, maxMessageBytes, mode);
     }
 
     private ProcessorAttributes attributes(String message) {

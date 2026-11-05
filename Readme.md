@@ -25,7 +25,7 @@ Use this dependency in your Java/Mule Applications
 <dependency>
     <groupId>com.avioconsulting</groupId>
     <artifactId>log4j2-sqs-appender</artifactId>
-    <version>2.0.0</version>
+    <version>1.2.0</version>
 </dependency>
 ```
 
@@ -89,6 +89,11 @@ are sent one at a time, because the AWS SDK batch manager still limits a batch t
 Send failures are reported to the Log4j status logger (the console), at most once every 10 seconds. The report never
 contains the message body, and it is never sent back to the SQS appender.
 
+When a log event is larger than `maxMessageBytes`, the appender also writes a normal log line before handling it.
+`TRUNCATE` and `DISCARD` are logged at WARN. `FIFO`, `EXTENDED`, and `S3` are logged at INFO. That line follows the
+application's usual loggers, so it reaches the console, the log file, and this SQS appender. It contains the original
+size, the limit, and the mode. It does not contain the original event.
+
 Optional Configurations
 =======================
 
@@ -101,13 +106,13 @@ Optional Configurations
 * `largeMessageMode` - select one of the provided options `(TRUNCATE|DISCARD|FIFO|EXTENDED|S3)` to process an event message larger than `maxMessageBytes`
   before sent it to target.
     * `TRUNCATE` - message will be truncated to `maxMessageBytes` and sent to `queueName`. This is the default.
-    * `DISCARD` - It will modify message by changing original content
-      to `Can't display log message. Message max size exceeded. max size: maxMessageBytes`.
+    * `DISCARD` - replaces the original content with
+      `Can't display log message. Message max size exceeded. max size:` followed immediately by the `maxMessageBytes` value.
     * `FIFO` - this option will split the messages into multiple SQS messages and placed on a FIFO queue with the same
       group ID value (the uuid) so they are guaranteed to be processed in order. The SQS messages will need to be
       accumulated so the log message can be reconstructed.
       The message format looks like
-      this: `currentPart=1|totalParts=5|uuid=8744fe2c-cbea-4e49-8b81-0d7076899a48|message="[INFO] - Hello World! "` 
+      this: `currentPart=1|totalParts=5|uuid=8744fe2c-cbea-4e49-8b81-0d7076899a48|message=[INFO] - Hello World!` 
     * `EXTENDED` - In this case the message will be queued into SQS `queueName` queue with a reference id to `s3BucketName`
       bucket file, which at the end, will contain the actual message. The appender uses the
       [Amazon SQS Extended Client Library](https://github.com/awslabs/amazon-sqs-java-extended-client-lib).
@@ -170,11 +175,12 @@ rejects larger messages sent to that queue.
 
 If you cannot change the queue, set `maxMessageBytes` to the queue's `MaximumMessageSize` value.
 
-Upgrading from 1.x
-==================
+Upgrading from 1.1.0
+====================
 
-Version 2.0.0 replaces the AWS SDK for Java 1.x with the AWS SDK for Java 2.x. Existing log4j2.xml configurations work
-without changes. Note these differences:
+Version 1.2.0 replaces the AWS SDK for Java 1.x with the AWS SDK for Java 2.x. This is a minor release because existing
+log4j2.xml configurations work without changes. The public contract is the appender configuration, and the SDK types
+are not part of that contract. Note these differences:
 
 * Messages up to 1 MiB are sent whole. In version 1.x, when `maxMessageBytes` was set above 256 KiB, messages larger
   than 256 KiB failed with `Failed to schedule request`, because the SDK 1.x buffered client rejected them before
@@ -182,6 +188,8 @@ without changes. Note these differences:
 * The default `maxMessageBytes` is 1048576. It was 250000.
 * Send failures go to the Log4j status logger. In version 1.1.0 they were logged through the regular logger, so they
   could be sent back to the SQS appender and create a loop of growing error messages.
+* A message larger than `maxMessageBytes` also writes a normal log line before it is handled. `TRUNCATE` and `DISCARD`
+  are WARN. `FIFO`, `EXTENDED`, and `S3` are INFO. The line contains the size, the limit, and the mode, not the original event.
 * `maxInflightOutboundBatches` has no effect.
 * The AWS clients are created when the first message is sent, not when log4j2 loads the configuration.
 * The appender now adds the AWS SDK 2.x libraries to the application, including Netty and Apache HttpClient 5.
@@ -193,4 +201,17 @@ Run Automated tests
 mvn clean verify
 ```
 As it runs localstack using a docker image, you need to have docker installed in your local machine.
+
+Mule sample
+===========
+
+`samples/mule-sqs-appender-test` is a small Mule 4.9 application that logs three messages through this appender:
+
+* about 50 KB, under the 256 KiB batch limit
+* about 500 KB, over 256 KiB and under 1 MiB, sent as one `SendMessage` call
+* about 1.1 MB, over `maxMessageBytes`
+
+Each message ends with `###SQS-APPENDER-TEST-END###`. If that marker is present in the stored event, the full message was sent. The sample sets `largeMessageMode="DISCARD"`, so the 1.1 MB event is replaced by the short discard notice and the marker is not present. Change `largeMessageMode` in `samples/mule-sqs-appender-test/src/main/resources/log4j2.xml` to try `TRUNCATE`, `FIFO`, `EXTENDED`, or `S3`.
+
+The sample is not part of this repository's Maven build. Open it in Anypoint Studio. See `samples/mule-sqs-appender-test/README.md`.
 
