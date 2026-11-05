@@ -206,25 +206,6 @@ rejects larger messages sent to that queue.
 
 If you cannot change the queue, set `maxMessageBytes` to the queue's `MaximumMessageSize` value.
 
-Upgrading from 1.1.0
-====================
-
-Version 1.2.0 replaces the AWS SDK for Java 1.x with the AWS SDK for Java 2.x. This is a minor release because existing
-log4j2.xml configurations work without changes. The public contract is the appender configuration, and the SDK types
-are not part of that contract. Note these differences:
-
-* Messages up to 1 MiB are sent whole. In version 1.x, when `maxMessageBytes` was set above 256 KiB, messages larger
-  than 256 KiB failed with `Failed to schedule request`, because the SDK 1.x buffered client rejected them before
-  they were sent.
-* The default `maxMessageBytes` is 1048576. It was 250000.
-* Send failures go to the Log4j status logger. In version 1.1.0 they were logged through the regular logger, so they
-  could be sent back to the SQS appender and create a loop of growing error messages.
-* A message larger than `maxMessageBytes` also writes a normal log line before it is handled. `TRUNCATE` and `DISCARD`
-  are WARN. `FIFO`, `EXTENDED`, and `S3` are INFO. The line contains the size, the limit, and the mode, not the original event.
-* `maxInflightOutboundBatches` has no effect.
-* The AWS clients are created when the first message is sent, not when log4j2 loads the configuration.
-* The appender now adds the AWS SDK 2.x libraries to the application, including Netty and Apache HttpClient 5.
-
 Run Automated tests
 ==========================
 * Run automated test of this component using the following command.
