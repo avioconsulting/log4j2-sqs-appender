@@ -75,6 +75,19 @@ or
 When you run the project with this appender added with your AWS credentials, you should the see your app logs flowing
 into the specified SQS queue.
 
+CloudHub
+--------
+
+On CloudHub 1.0, the platform replaces the application's `log4j2.xml` with its own logging configuration unless you
+turn that off. In Runtime Manager, open the application, choose Settings, and select **Disable CloudHub logs**.
+CloudHub then uses the `log4j2.xml` shipped with the application, and logs from this appender can reach SQS.
+Application logs no longer show on the Runtime Manager Logs page. Only system logs remain there.
+
+This option is available on request. If it is not in the Settings page, request it from Salesforce Help.
+See [Integrate with Your Logging System Using Log4j](https://docs.mulesoft.com/cloudhub/custom-log-appender).
+
+CloudHub 2.0 does not use that checkbox. It merges the application's `log4j2.xml` with the platform appenders.
+
 How messages are sent
 =====================
 
@@ -83,8 +96,10 @@ How messages are sent
 3. If the message is larger than `maxMessageBytes`, the appender handles it with `largeMessageMode`.
    When `largeMessageMode` is not set, the appender uses `TRUNCATE`.
 
-Messages up to 256 KiB are sent in batches (see `maxBatchSize` and `maxBatchOpenMs`). Messages larger than 256 KiB
-are sent one at a time, because the AWS SDK batch manager still limits a batch to 256 KiB.
+The message limit is 1 MiB (`maxMessageBytes`, capped at 1,048,576 bytes). Messages of 256 KiB or smaller may share one
+`SendMessageBatch` call (`maxBatchSize` and `maxBatchOpenMs`). A bigger message, up to 1 MiB, is sent on its own with
+`SendMessage`, because the SDK batch manager still refuses a single batch entry over 256 KiB. That is a batching
+cutoff, not the SQS message limit.
 
 Send failures are reported to the Log4j status logger (the console), at most once every 10 seconds. The report never
 contains the message body, and it is never sent back to the SQS appender.
