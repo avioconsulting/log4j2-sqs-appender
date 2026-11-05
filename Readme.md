@@ -140,7 +140,8 @@ Optional Configurations
     * `DISCARD` - replaces the original content with
       `Can't display log message. Message max size exceeded. max size:` followed immediately by the `maxMessageBytes` value.
     * `FIFO` - this option will split the messages into multiple SQS messages and placed on a FIFO queue with the same
-      group ID value (the uuid) so they are guaranteed to be processed in order. The SQS messages will need to be
+      group ID value (the uuid) so they are guaranteed to be processed in order. Each part is sent only after SQS
+      accepts the previous part. The SQS messages will need to be
       accumulated so the log message can be reconstructed.
       The message format looks like
       this: `currentPart=1|totalParts=5|uuid=8744fe2c-cbea-4e49-8b81-0d7076899a48|message=[INFO] - Hello World!` 

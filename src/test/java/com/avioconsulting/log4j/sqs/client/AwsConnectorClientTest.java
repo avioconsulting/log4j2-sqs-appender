@@ -21,10 +21,15 @@ import java.math.BigInteger;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -37,14 +42,21 @@ public class AwsConnectorClientTest {
     private static final String QUEUE = "mule-log-test";
 
     private HttpServer server;
+    private ExecutorService serverExecutor;
     private final List<String> operations = new CopyOnWriteArrayList<>();
     private final List<Integer> sentBodyBytes = new CopyOnWriteArrayList<>();
     private final List<Integer> batchSizes = new CopyOnWriteArrayList<>();
+    private final List<String> fifoBodies = new CopyOnWriteArrayList<>();
+    private final CountDownLatch firstFifoRequest = new CountDownLatch(1);
+    private final CountDownLatch releaseFirstFifo = new CountDownLatch(1);
     private volatile boolean failSends;
+    private volatile boolean holdFirstFifoSend;
 
     @Before
     public void startServer() throws IOException {
         server = HttpServer.create(new InetSocketAddress("localhost", 0), 0);
+        serverExecutor = Executors.newCachedThreadPool();
+        server.setExecutor(serverExecutor);
         server.createContext("/", this::handle);
         server.start();
     }
@@ -52,6 +64,7 @@ public class AwsConnectorClientTest {
     @After
     public void stopServer() {
         server.stop(0);
+        serverExecutor.shutdownNow();
     }
 
     @Test
@@ -98,6 +111,26 @@ public class AwsConnectorClientTest {
     }
 
     @Test
+    public void fifoPartIsAcceptedBeforeTheNextPartIsSent() throws Exception {
+        holdFirstFifoSend = true;
+        AwsConnectorClient client = client(10, 50);
+        Thread sender = new Thread(() -> {
+            client.sendMessage(QUEUE, fifoRequest("part-1"));
+            client.sendMessage(QUEUE, fifoRequest("part-2"));
+        });
+        sender.start();
+
+        assertTrue(firstFifoRequest.await(5, TimeUnit.SECONDS));
+        Thread.sleep(300);
+        assertEquals(Arrays.asList("part-1"), fifoBodies);
+
+        releaseFirstFifo.countDown();
+        sender.join(10_000);
+        assertEquals(Arrays.asList("part-1", "part-2"), fifoBodies);
+        client.close(5_000);
+    }
+
+    @Test
     public void sendFailureDoesNotThrowToCaller() {
         failSends = true;
         AwsConnectorClient client = client(1, 0);
@@ -134,6 +167,10 @@ public class AwsConnectorClientTest {
         return SendMessageRequest.builder().messageBody(body).build();
     }
 
+    private static SendMessageRequest fifoRequest(String body) {
+        return SendMessageRequest.builder().messageBody(body).messageGroupId("group-1").build();
+    }
+
     @SuppressWarnings("unchecked")
     private void handle(HttpExchange exchange) throws IOException {
         String target = exchange.getRequestHeaders().getFirst("X-Amz-Target");
@@ -153,6 +190,13 @@ public class AwsConnectorClientTest {
             } else if ("SendMessage".equals(operation)) {
                 String body = (String) request.get("MessageBody");
                 sentBodyBytes.add(body.getBytes(StandardCharsets.UTF_8).length);
+                if (request.get("MessageGroupId") != null) {
+                    fifoBodies.add(body);
+                    if (holdFirstFifoSend && fifoBodies.size() == 1) {
+                        firstFifoRequest.countDown();
+                        releaseFirstFifo.await(5, TimeUnit.SECONDS);
+                    }
+                }
                 response.put("MessageId", UUID.randomUUID().toString());
                 response.put("MD5OfMessageBody", md5(body));
             } else if ("SendMessageBatch".equals(operation)) {

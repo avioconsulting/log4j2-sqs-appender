@@ -74,11 +74,28 @@ public class AwsConnectorClient implements ConnectorClient {
     public void sendMessage(String queueName, SendMessageRequest request) {
         Clients aws = clients();
         SendMessageRequest requestWithUrl = request.toBuilder().queueUrl(getQueueUrl(aws, queueName)).build();
+        if (requestWithUrl.messageGroupId() != null) {
+            sendFifoMessage(aws, queueName, requestWithUrl);
+            return;
+        }
         int bodyBytes = requestWithUrl.messageBody().getBytes(StandardCharsets.UTF_8).length;
         CompletableFuture<SendMessageResponse> future = aws.batchManager != null && bodyBytes <= SqsLimits.MAX_BATCHED_MESSAGE_BYTES
                 ? aws.batchManager.sendMessage(requestWithUrl)
                 : aws.sqsAsyncClient.sendMessage(requestWithUrl);
         track(future, queueName);
+    }
+
+    /**
+     * Sends one FIFO part and waits until SQS accepts it. Parts of one message share a group id, and SQS keeps
+     * that order only when the previous part has been accepted before the next one is sent.
+     */
+    private void sendFifoMessage(Clients aws, String queueName, SendMessageRequest request) {
+        try {
+            aws.sqsAsyncClient.sendMessage(request).join();
+        } catch (RuntimeException e) {
+            reportSendFailure(queueName, e);
+            throw e;
+        }
     }
 
     @Override
