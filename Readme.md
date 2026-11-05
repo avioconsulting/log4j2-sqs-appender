@@ -4,6 +4,7 @@ This is a custom appender for log4j2. When used with Java/Mule apps, This append
 specified Amazon SQS Queue.
 
 The appender uses the AWS SDK for Java 2.x and supports SQS messages up to 1 MiB (1,048,576 bytes).
+Version history is in [CHANGELOG.md](CHANGELOG.md).
 
 Why?
 ====================
@@ -103,6 +104,21 @@ cutoff, not the SQS message limit.
 
 Send failures are reported to the Log4j status logger (the console), at most once every 10 seconds. The report never
 contains the message body, and it is never sent back to the SQS appender.
+
+If the root logger is `DEBUG`, AWS SDK and Netty debug lines also reach the SQS appender. Sending those lines creates
+more debug lines. Keep them out of SQS with `additivity="false"`. This is optional. An `INFO` root logger does not
+need it.
+
+```xml
+<Loggers>
+    <Logger name="software.amazon.awssdk" level="INFO" additivity="false">
+        <AppenderRef ref="Console"/>
+    </Logger>
+    <Logger name="io.netty" level="INFO" additivity="false">
+        <AppenderRef ref="Console"/>
+    </Logger>
+</Loggers>
+```
 
 When a log event is larger than `maxMessageBytes`, the appender also writes a normal log line before handling it.
 `TRUNCATE` and `DISCARD` are logged at WARN. `FIFO`, `EXTENDED`, and `S3` are logged at INFO. That line follows the
