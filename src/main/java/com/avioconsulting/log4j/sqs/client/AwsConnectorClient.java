@@ -118,8 +118,8 @@ public class AwsConnectorClient implements ConnectorClient {
     }
 
     /**
-     * Runs the whole shutdown (batch flush, in-flight sends, client cleanup) on a daemon thread, so one
-     * deadline bounds it. The SDK batch manager and the Netty client each have their own internal waits.
+     * The caller waits at most timeoutMillis. Sends still running at that point are cancelled, and client
+     * close still runs. Client close itself can take longer than the timeout.
      */
     @Override
     public boolean close(long timeoutMillis) {
@@ -135,7 +135,7 @@ public class AwsConnectorClient implements ConnectorClient {
         CompletableFuture<Void> shutdown = new CompletableFuture<>();
         Thread thread = new Thread(() -> {
             try {
-                shutdown(aws);
+                shutdown(aws, timeoutMillis);
                 shutdown.complete(null);
             } catch (Throwable t) {
                 shutdown.completeExceptionally(t);
@@ -157,17 +157,84 @@ public class AwsConnectorClient implements ConnectorClient {
         return false;
     }
 
-    private void shutdown(Clients aws) {
-        if (aws.batchManager != null) {
-            aws.batchManager.close();
-        }
+    private void shutdown(Clients aws, long timeoutMillis) {
+        long deadlineNanos = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(Math.max(timeoutMillis, 0));
         CompletableFuture<?>[] pending = pendingSends.toArray(new CompletableFuture<?>[0]);
         try {
-            CompletableFuture.allOf(pending).join();
-        } catch (CompletionException | CancellationException e) {
+            CompletableFuture.allOf(pending).get(remainingMillis(deadlineNanos), TimeUnit.MILLISECONDS);
+        } catch (TimeoutException e) {
+            cancelPending();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            cancelPending();
+        } catch (ExecutionException | CancellationException e) {
             // Individual failures are already reported by track().
         }
-        aws.close();
+        closeBatchManager(aws, deadlineNanos);
+        closeClients(aws, deadlineNanos);
+    }
+
+    private void cancelPending() {
+        for (CompletableFuture<?> pending : pendingSends) {
+            pending.cancel(true);
+        }
+    }
+
+    /**
+     * Gives the batch manager only the time still left. Closing it first would wait on the same stalled send.
+     */
+    private void closeBatchManager(Clients aws, long deadlineNanos) {
+        if (aws.batchManager == null) {
+            return;
+        }
+        Thread batchClose = new Thread(() -> {
+            try {
+                aws.batchManager.close();
+            } catch (RuntimeException ignored) {
+                // The client close below still runs.
+            }
+        }, "log4j2-sqs-appender-batch-close");
+        batchClose.setDaemon(true);
+        batchClose.start();
+        joinUntilDeadline(batchClose, deadlineNanos);
+    }
+
+    /**
+     * Starts client close even when no time is left. The shutdown thread waits only until the deadline.
+     */
+    private void closeClients(Clients aws, long deadlineNanos) {
+        Thread clientClose = new Thread(() -> {
+            try {
+                aws.close();
+            } catch (RuntimeException ignored) {
+                // Stopping should still finish.
+            }
+        }, "log4j2-sqs-appender-client-close");
+        clientClose.setDaemon(true);
+        clientClose.start();
+        joinUntilDeadline(clientClose, deadlineNanos);
+        if (clientClose.isAlive()) {
+            throw new IllegalStateException("AWS client close exceeded the shutdown timeout");
+        }
+    }
+
+    /**
+     * join(0) waits forever, so a deadline that has already passed must not call it.
+     */
+    private static void joinUntilDeadline(Thread thread, long deadlineNanos) {
+        long waitMs = remainingMillis(deadlineNanos);
+        if (waitMs <= 0) {
+            return;
+        }
+        try {
+            thread.join(waitMs);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    }
+
+    private static long remainingMillis(long deadlineNanos) {
+        return Math.max(TimeUnit.NANOSECONDS.toMillis(deadlineNanos - System.nanoTime()), 0);
     }
 
     private Clients clients() {

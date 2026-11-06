@@ -34,6 +34,7 @@ import java.util.concurrent.TimeUnit;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 /**
  * Runs the real SDK v2 client against a local fake of the SQS JSON API.
@@ -141,7 +142,7 @@ public class AwsConnectorClientTest {
     }
 
     @Test
-    public void closeTimeoutBoundsShutdownWhenSqsIsSlow() {
+    public void closeTimeoutBoundsShutdownWhenSqsIsSlow() throws InterruptedException {
         batchResponseDelayMs = 800;
         AwsConnectorClient client = client(10, 50);
         client.sendMessage(QUEUE, request("slow"));
@@ -152,6 +153,12 @@ public class AwsConnectorClientTest {
 
         assertFalse(finished);
         assertTrue("close took " + elapsedMs + " ms", elapsedMs < 600);
+        Thread.sleep(400);
+        for (Thread thread : Thread.getAllStackTraces().keySet()) {
+            if ("log4j2-sqs-appender-shutdown".equals(thread.getName())) {
+                fail("shutdown thread was still running after the timeout");
+            }
+        }
     }
 
     @Test

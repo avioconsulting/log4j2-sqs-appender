@@ -1,6 +1,7 @@
 package com.avioconsulting.log4j.sqs;
 
 import com.avioconsulting.log4j.sqs.processor.DiscardMessageProcessor;
+import com.avioconsulting.log4j.sqs.processor.FifoMessageProcessor;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.Appender;
@@ -25,6 +26,7 @@ import java.util.UUID;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class SqsManagerRoutingTest {
 
@@ -122,6 +124,27 @@ public class SqsManagerRoutingTest {
         assertEquals(1, diagnostics.size());
         assertEquals(2, client.sent.size());
         assertTrue(bytes(client.sent.get(1).request.messageBody()) <= 100);
+    }
+
+    @Test
+    public void fifoRejectsALimitTooSmallForTheHeader() {
+        try {
+            manager(64, "FIFO").send(layout, event(repeat('c', 200)));
+            fail("expected a limit of 64 to be rejected");
+        } catch (IllegalArgumentException expected) {
+            assertTrue(expected.getMessage().contains("64"));
+        }
+        assertEquals(0, client.sent.size());
+    }
+
+    @Test
+    public void fifoSplitDoesNotLoopWhenACharacterDoesNotFit() {
+        try {
+            new FifoMessageProcessor().splitStringByByteLength("\u00e9\u00e9\u00e9\u00e9", "UTF-8", 1);
+            fail("expected a 1-byte part to be rejected");
+        } catch (IllegalArgumentException expected) {
+            assertTrue(expected.getMessage().contains("1"));
+        }
     }
 
     @Test

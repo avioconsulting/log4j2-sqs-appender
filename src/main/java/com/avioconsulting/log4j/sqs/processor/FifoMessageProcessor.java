@@ -26,6 +26,11 @@ public class FifoMessageProcessor implements LogEventProcessor {
      * Bytes kept free in each part for the "currentPart=..|totalParts=..|uuid=..|message=" header.
      */
     static final int PART_HEADER_RESERVED_BYTES = 128;
+    /**
+     * A UTF-8 character can take this many bytes. A smaller payload cannot make progress and the split loops.
+     */
+    static final int MAX_UTF8_BYTES_PER_CHAR = 4;
+    static final int MIN_FIFO_MESSAGE_BYTES = PART_HEADER_RESERVED_BYTES + MAX_UTF8_BYTES_PER_CHAR;
     private static final Logger logger = StatusLogger.getLogger();
 
     @Override
@@ -56,7 +61,13 @@ public class FifoMessageProcessor implements LogEventProcessor {
         int limit = maxMessageBytes == null || maxMessageBytes <= 0
                 ? SqsLimits.MAX_MESSAGE_BYTES
                 : Math.min(maxMessageBytes, SqsLimits.MAX_MESSAGE_BYTES);
-        return Math.max(1, limit - PART_HEADER_RESERVED_BYTES);
+        int payload = limit - PART_HEADER_RESERVED_BYTES;
+        if (payload < MAX_UTF8_BYTES_PER_CHAR) {
+            throw new IllegalArgumentException("maxMessageBytes of " + limit
+                    + " is too small for a FIFO part. It must be at least " + MIN_FIFO_MESSAGE_BYTES
+                    + " so the header and one character fit.");
+        }
+        return payload;
     }
 
     /**
@@ -77,6 +88,10 @@ public class FifoMessageProcessor implements LogEventProcessor {
         while (true) {
             CoderResult result = coder.encode(in, out, true);
             int newpos = src.length() - in.length();
+            if (result.isOverflow() && newpos == pos) {
+                throw new IllegalArgumentException("Cannot split a FIFO part into " + maxsize
+                        + " bytes. The next character needs more room than that.");
+            }
             String s = src.substring(pos, newpos);
             ss.add(s);
             pos = newpos;

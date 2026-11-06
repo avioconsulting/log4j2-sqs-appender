@@ -26,9 +26,10 @@ public interface ConnectorClient {
     void putObject(S3ObjectRequest request);
 
     /**
-     * Flushes pending messages, waits for in-flight sends, and releases resources, all within timeoutMillis.
+     * Waits up to timeoutMillis for in-flight sends, then releases resources. Sends still running are cancelled.
+     * Resource release starts even when the wait runs out. Closing the AWS clients can take longer than timeoutMillis.
      *
-     * @return true if shutdown finished within timeoutMillis
+     * @return true if the wait and the resource release both finished within timeoutMillis
      */
     boolean close(long timeoutMillis);
 }
