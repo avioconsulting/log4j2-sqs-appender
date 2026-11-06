@@ -142,6 +142,19 @@ public class AwsConnectorClientTest {
     }
 
     @Test
+    public void closeFlushesBufferedMessagesBeforeBatchIntervalExpires() {
+        // The batch timer cannot fire within the shutdown budget.
+        AwsConnectorClient client = client(10, 30_000);
+        client.sendMessage(QUEUE, request("buffered message"));
+
+        boolean finished = client.close(5_000);
+
+        assertTrue("Shutdown should finish against a healthy endpoint", finished);
+        assertTrue(operations.contains("SendMessageBatch"));
+        assertEquals(1, sentBodyBytes.size());
+    }
+
+    @Test
     public void closeTimeoutBoundsShutdownWhenSqsIsSlow() throws InterruptedException {
         batchResponseDelayMs = 800;
         AwsConnectorClient client = client(10, 50);

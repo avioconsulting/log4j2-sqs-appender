@@ -159,6 +159,9 @@ public class AwsConnectorClient implements ConnectorClient {
 
     private void shutdown(Clients aws, long timeoutMillis) {
         long deadlineNanos = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(Math.max(timeoutMillis, 0));
+        // Start flushing buffered messages before waiting for send completion.
+        // This helper waits only until the shared shutdown deadline.
+        closeBatchManager(aws, deadlineNanos);
         CompletableFuture<?>[] pending = pendingSends.toArray(new CompletableFuture<?>[0]);
         try {
             CompletableFuture.allOf(pending).get(remainingMillis(deadlineNanos), TimeUnit.MILLISECONDS);
@@ -170,7 +173,6 @@ public class AwsConnectorClient implements ConnectorClient {
         } catch (ExecutionException | CancellationException e) {
             // Individual failures are already reported by track().
         }
-        closeBatchManager(aws, deadlineNanos);
         closeClients(aws, deadlineNanos);
     }
 
@@ -181,7 +183,8 @@ public class AwsConnectorClient implements ConnectorClient {
     }
 
     /**
-     * Gives the batch manager only the time still left. Closing it first would wait on the same stalled send.
+     * Starts the batch manager's shutdown flush immediately and waits only until the shared deadline.
+     * A stalled send cannot extend this wait.
      */
     private void closeBatchManager(Clients aws, long deadlineNanos) {
         if (aws.batchManager == null) {
