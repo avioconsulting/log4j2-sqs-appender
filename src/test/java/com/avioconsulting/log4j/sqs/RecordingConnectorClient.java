@@ -44,7 +44,8 @@ class RecordingConnectorClient implements ConnectorClient {
     }
 
     @Override
-    public void close(long timeoutMillis) {
+    public boolean close(long timeoutMillis) {
         closedWithTimeoutMillis = timeoutMillis;
+        return true;
     }
 }

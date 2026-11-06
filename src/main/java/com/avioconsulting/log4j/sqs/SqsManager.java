@@ -47,6 +47,7 @@ public class SqsManager extends AbstractManager {
      * not include the original event, so this log is sent normally and does not re-enter this branch.
      */
     private static final Logger oversizedLog = LogManager.getLogger(SqsManager.class);
+    static final String OVERSIZED_LOGGER_NAME = SqsManager.class.getName();
 
     protected SqsManager(final Configuration configuration,
                          final LoggerContext loggerContext,
@@ -80,7 +81,10 @@ public class SqsManager extends AbstractManager {
         String mode = largeMessageMode == null || largeMessageMode.trim().isEmpty()
                 ? ProcessorType.TRUNCATE.name()
                 : largeMessageMode;
-        logOversized(messageLength, mode);
+        // A diagnostic that is itself oversized must not produce another diagnostic, or async logging loops.
+        if (!OVERSIZED_LOGGER_NAME.equals(event.getLoggerName())) {
+            logOversized(messageLength, mode);
+        }
 
         LogEventProcessor logEventProcessor = ProcessorSupplier.selectProcessor(largeMessageMode);
         MessageRequestWrapper wrapper = logEventProcessor.process(attributes(message));
@@ -96,8 +100,7 @@ public class SqsManager extends AbstractManager {
     @Override
     protected boolean releaseSub(final long timeout, final TimeUnit timeUnit) {
         long timeoutMillis = timeout > 0 ? timeUnit.toMillis(timeout) : DEFAULT_SHUTDOWN_TIMEOUT_MS;
-        connectorClient.close(timeoutMillis);
-        return true;
+        return connectorClient.close(timeoutMillis);
     }
 
     private void dispatch(MessageRequestWrapper wrapper, String targetQueueName, boolean extended) {

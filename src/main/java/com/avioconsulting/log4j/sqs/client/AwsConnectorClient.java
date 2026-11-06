@@ -24,6 +24,7 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Set;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
@@ -116,8 +117,12 @@ public class AwsConnectorClient implements ConnectorClient {
         aws.s3Client.putObject(request.getPutObjectRequest(), RequestBody.fromString(request.getContent(), StandardCharsets.UTF_8));
     }
 
+    /**
+     * Runs the whole shutdown (batch flush, in-flight sends, client cleanup) on a daemon thread, so one
+     * deadline bounds it. The SDK batch manager and the Netty client each have their own internal waits.
+     */
     @Override
-    public void close(long timeoutMillis) {
+    public boolean close(long timeoutMillis) {
         Clients aws;
         synchronized (lock) {
             closed = true;
@@ -125,12 +130,43 @@ public class AwsConnectorClient implements ConnectorClient {
             clients = null;
         }
         if (aws == null) {
-            return;
+            return true;
         }
+        CompletableFuture<Void> shutdown = new CompletableFuture<>();
+        Thread thread = new Thread(() -> {
+            try {
+                shutdown(aws);
+                shutdown.complete(null);
+            } catch (Throwable t) {
+                shutdown.completeExceptionally(t);
+            }
+        }, "log4j2-sqs-appender-shutdown");
+        thread.setDaemon(true);
+        thread.start();
+        try {
+            shutdown.get(timeoutMillis, TimeUnit.MILLISECONDS);
+            return true;
+        } catch (TimeoutException e) {
+            LOGGER.warn("SQS appender did not stop within {} ms. {} log messages may not have been sent.",
+                    timeoutMillis, pendingSends.size());
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        } catch (ExecutionException e) {
+            LOGGER.warn("SQS appender failed while stopping: {}", describe(e));
+        }
+        return false;
+    }
+
+    private void shutdown(Clients aws) {
         if (aws.batchManager != null) {
             aws.batchManager.close();
         }
-        waitForPendingSends(timeoutMillis);
+        CompletableFuture<?>[] pending = pendingSends.toArray(new CompletableFuture<?>[0]);
+        try {
+            CompletableFuture.allOf(pending).join();
+        } catch (CompletionException | CancellationException e) {
+            // Individual failures are already reported by track().
+        }
         aws.close();
     }
 
@@ -180,22 +216,6 @@ public class AwsConnectorClient implements ConnectorClient {
         }
         LOGGER.error("Failed to send log message to SQS queue {}: {} ({} similar failures suppressed)",
                 queueName, describe(throwable), suppressedErrors.getAndSet(0));
-    }
-
-    private void waitForPendingSends(long timeoutMillis) {
-        CompletableFuture<?>[] pending = pendingSends.toArray(new CompletableFuture<?>[0]);
-        if (pending.length == 0) {
-            return;
-        }
-        try {
-            CompletableFuture.allOf(pending).get(timeoutMillis, TimeUnit.MILLISECONDS);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        } catch (ExecutionException e) {
-            // Individual failures are already reported by track().
-        } catch (TimeoutException e) {
-            LOGGER.warn("{} log messages were still being sent to SQS when the appender stopped", pendingSends.size());
-        }
     }
 
     static int batchSize(Integer maxBatchSize) {

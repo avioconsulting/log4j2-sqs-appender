@@ -16,7 +16,9 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.List;
 import java.util.UUID;
 
@@ -87,6 +89,50 @@ public class SqsManagerRoutingTest {
         assertFalse(truncated.contains("xxx"));
         assertEquals(Level.INFO, captured.get(1).getLevel());
         assertTrue(captured.get(1).getMessage().getFormattedMessage().contains("largeMessageMode=EXTENDED"));
+    }
+
+    @Test
+    public void oversizedDiagnosticDoesNotProduceAnotherDiagnostic() {
+        Deque<LogEvent> pending = new ArrayDeque<>();
+        List<LogEvent> diagnostics = new ArrayList<>();
+        Appender capture = new AbstractAppender("loop-capture", null, null, true, null) {
+            @Override
+            public void append(LogEvent event) {
+                LogEvent copy = event.toImmutable();
+                diagnostics.add(copy);
+                pending.add(copy);
+            }
+        };
+        capture.start();
+        org.apache.logging.log4j.core.Logger logger =
+                (org.apache.logging.log4j.core.Logger) LogManager.getLogger(SqsManager.class);
+        logger.addAppender(capture);
+        try {
+            SqsManager manager = manager(100, null);
+            manager.send(layout, event(repeat('x', 500)));
+            // Feed each diagnostic back into the appender later, the way an async logger would.
+            for (int i = 0; i < 10 && !pending.isEmpty(); i++) {
+                manager.send(layout, pending.poll());
+            }
+        } finally {
+            logger.removeAppender(capture);
+            capture.stop();
+        }
+
+        assertEquals(1, diagnostics.size());
+        assertEquals(2, client.sent.size());
+        assertTrue(bytes(client.sent.get(1).request.messageBody()) <= 100);
+    }
+
+    @Test
+    public void fifoPartsFitInA256KiBQueue() {
+        int queueLimit = 262_144;
+        manager(queueLimit, "FIFO").send(layout, event(repeat('c', 600_000)));
+
+        assertTrue(client.sent.size() > 1);
+        for (RecordingConnectorClient.Sent sent : client.sent) {
+            assertTrue(bytes(sent.request.messageBody()) <= queueLimit);
+        }
     }
 
     @Test

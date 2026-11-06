@@ -32,6 +32,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -50,6 +51,7 @@ public class AwsConnectorClientTest {
     private final CountDownLatch firstFifoRequest = new CountDownLatch(1);
     private final CountDownLatch releaseFirstFifo = new CountDownLatch(1);
     private volatile boolean failSends;
+    private volatile long batchResponseDelayMs;
     private volatile boolean holdFirstFifoSend;
 
     @Before
@@ -131,6 +133,28 @@ public class AwsConnectorClientTest {
     }
 
     @Test
+    public void closeFinishesWithinTimeout() {
+        AwsConnectorClient client = client(1, 0);
+        client.sendMessage(QUEUE, request("one"));
+
+        assertTrue(client.close(5_000));
+    }
+
+    @Test
+    public void closeTimeoutBoundsShutdownWhenSqsIsSlow() {
+        batchResponseDelayMs = 800;
+        AwsConnectorClient client = client(10, 50);
+        client.sendMessage(QUEUE, request("slow"));
+
+        long start = System.nanoTime();
+        boolean finished = client.close(100);
+        long elapsedMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
+
+        assertFalse(finished);
+        assertTrue("close took " + elapsedMs + " ms", elapsedMs < 600);
+    }
+
+    @Test
     public void sendFailureDoesNotThrowToCaller() {
         failSends = true;
         AwsConnectorClient client = client(1, 0);
@@ -200,6 +224,9 @@ public class AwsConnectorClientTest {
                 response.put("MessageId", UUID.randomUUID().toString());
                 response.put("MD5OfMessageBody", md5(body));
             } else if ("SendMessageBatch".equals(operation)) {
+                if (batchResponseDelayMs > 0) {
+                    Thread.sleep(batchResponseDelayMs);
+                }
                 JSONArray entries = (JSONArray) request.get("Entries");
                 batchSizes.add(entries.size());
                 JSONArray successful = new JSONArray();

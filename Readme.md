@@ -123,7 +123,12 @@ need it.
 When a log event is larger than `maxMessageBytes`, the appender also writes a normal log line before handling it.
 `TRUNCATE` and `DISCARD` are logged at WARN. `FIFO`, `EXTENDED`, and `S3` are logged at INFO. That line follows the
 application's usual loggers, so it reaches the console, the log file, and this SQS appender. It contains the original
-size, the limit, and the mode. It does not contain the original event.
+size, the limit, and the mode. It does not contain the original event. If that line is itself larger than
+`maxMessageBytes`, it is handled by `largeMessageMode` like any other event, but it does not produce another line.
+
+When the appender stops, it flushes buffered messages, waits for in-flight sends, and closes the AWS clients within
+the Log4j shutdown timeout (5 seconds when none is set). If that takes longer, the appender reports it to the Log4j
+status logger, and messages still in flight may be lost.
 
 Optional Configurations
 =======================
@@ -141,7 +146,8 @@ Optional Configurations
       `Can't display log message. Message max size exceeded. max size:` followed immediately by the `maxMessageBytes` value.
     * `FIFO` - this option will split the messages into multiple SQS messages and placed on a FIFO queue with the same
       group ID value (the uuid) so they are guaranteed to be processed in order. Each part is sent only after SQS
-      accepts the previous part. The SQS messages will need to be
+      accepts the previous part, so the logging thread waits for one SQS round trip per part. Each part, including
+      its header, fits in `maxMessageBytes`. The SQS messages will need to be
       accumulated so the log message can be reconstructed.
       The message format looks like
       this: `currentPart=1|totalParts=5|uuid=8744fe2c-cbea-4e49-8b81-0d7076899a48|message=[INFO] - Hello World!` 
@@ -157,7 +163,10 @@ Optional Configurations
 * `maxBatchOpenMs` - how long, in milliseconds, the appender waits to fill a batch before it sends it. The default is
   200. A value of 0 turns off batching.
 * `maxInflightOutboundBatches` - this attribute is accepted so existing configurations keep working, but it has no
-  effect. The AWS SDK for Java 2.x does not have this setting.
+  effect. The AWS SDK for Java 2.x does not have this setting. Outstanding sends are limited by the SDK HTTP client
+  instead: 50 connections, and up to 10,000 requests waiting for a connection for at most 10 seconds. Requests over
+  those limits fail and are reported to the Log4j status logger. Except in `FIFO` mode, logging threads do not
+  wait for these sends.
 * `endpointURL` - allows using VPC private network for sending messages. It's not required. When it is set, S3 uploads use path-style addressing so the same URL can serve SQS and S3.
 * `largeMessagesEnabled` - version 1.1.0 attribute. If it is `true` and `largeMessageMode` is not set, the appender
   uses `FIFO` mode. New configurations should use `largeMessageMode`.

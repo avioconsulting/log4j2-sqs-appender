@@ -26,7 +26,9 @@ public interface ConnectorClient {
     void putObject(S3ObjectRequest request);
 
     /**
-     * Flushes pending messages, waits up to timeoutMillis for in-flight sends, and releases resources.
+     * Flushes pending messages, waits for in-flight sends, and releases resources, all within timeoutMillis.
+     *
+     * @return true if shutdown finished within timeoutMillis
      */
-    void close(long timeoutMillis);
+    boolean close(long timeoutMillis);
 }

@@ -33,9 +33,8 @@ public class FifoMessageProcessor implements LogEventProcessor {
         List<SendMessageRequest> sendMessageRequestList = new ArrayList<>();
         UUID uuid = UUID.randomUUID();
         logger.debug("Splitting large message. Large message UUID: {}", uuid);
-        int partSize = Math.min(processorAttributes.getMaxMessageSize(),
-                SqsLimits.MAX_MESSAGE_BYTES - PART_HEADER_RESERVED_BYTES);
-        String[] splitMessage = splitStringByByteLength(processorAttributes.getMessage(), "UTF-8", partSize);
+        String[] splitMessage = splitStringByByteLength(processorAttributes.getMessage(), "UTF-8",
+                partSize(processorAttributes.getMaxMessageSize()));
 
         for (int i = 0; i < splitMessage.length; i++) {
             logger.debug("Sending message {} of {}", i + 1, splitMessage.length);
@@ -47,6 +46,17 @@ public class FifoMessageProcessor implements LogEventProcessor {
         MessageRequestWrapper messageRequestWrapper = new MessageRequestWrapper();
         messageRequestWrapper.setSendMessageRequest(sendMessageRequestList);
         return messageRequestWrapper;
+    }
+
+    /**
+     * Bytes of message text in each part, so the part plus its header fits in maxMessageBytes
+     * (and in the SQS limit). A queue whose MaximumMessageSize equals maxMessageBytes accepts every part.
+     */
+    public static int partSize(Integer maxMessageBytes) {
+        int limit = maxMessageBytes == null || maxMessageBytes <= 0
+                ? SqsLimits.MAX_MESSAGE_BYTES
+                : Math.min(maxMessageBytes, SqsLimits.MAX_MESSAGE_BYTES);
+        return Math.max(1, limit - PART_HEADER_RESERVED_BYTES);
     }
 
     /**
