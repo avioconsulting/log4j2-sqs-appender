@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+
+	<flow name="sqs-size-test">
+		<http:listener doc:name="GET /sqs-size-test" config-ref="httpListenerConfig" path="/sqs-size-test" allowedMethods="GET"/>
+		<ee:transform doc:name="small message">
+			<ee:variables>
+				<ee:set-variable variableName="smallMessage"><![CDATA[%dw 2.0
+output application/java
+---
+"SQS-APPENDER-TEST small (~50 KB, below the 256 KB batch threshold): " ++ dw::core::Strings::rightPad("", 50000, "A") ++ "###SQS-APPENDER-TEST-END###"]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<logger level="INFO" doc:name="log small" message="#[vars.smallMessage]"/>
+		<ee:transform doc:name="medium message">
+			<ee:variables>
+				<ee:set-variable variableName="mediumMessage"><![CDATA[%dw 2.0
+output application/java
+---
+"SQS-APPENDER-TEST medium (~500 KB, above 256 KB, below the 1 MB limit): " ++ dw::core::Strings::rightPad("", 500000, "A") ++ "###SQS-APPENDER-TEST-END###"]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<logger level="INFO" doc:name="log medium" message="#[vars.mediumMessage]"/>
+		<ee:transform doc:name="large message">
+			<ee:variables>
+				<ee:set-variable variableName="largeMessage"><![CDATA[%dw 2.0
+output application/java
+---
+"SQS-APPENDER-TEST large (~1.1 MB, above the 1 MB SQS limit): " ++ dw::core::Strings::rightPad("", 1100000, "A") ++ "###SQS-APPENDER-TEST-END###"]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<logger level="INFO" doc:name="log large" message="#[vars.largeMessage]"/>
+		<ee:transform doc:name="size response">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  status: "ok",
+  sizesSentBytes: {
+    small: sizeOf(vars.smallMessage as Binary {encoding: "UTF-8"}),
+    medium: sizeOf(vars.mediumMessage as Binary {encoding: "UTF-8"}),
+    large: sizeOf(vars.largeMessage as Binary {encoding: "UTF-8"})
+  }
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+</mule>

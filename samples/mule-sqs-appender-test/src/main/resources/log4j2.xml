@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Configuration packages="com.avioconsulting.log4j">
+    <Appenders>
+        <Console name="console" target="SYSTEM_OUT">
+            <PatternLayout pattern="%-5p %d [%t] %c: %m%n" />
+        </Console>
+
+        <RollingFile name="file" fileName="${sys:mule.home}${sys:file.separator}logs${sys:file.separator}sqs-appender-sample.log"
+                     filePattern="${sys:mule.home}${sys:file.separator}logs${sys:file.separator}sqs-appender-sample-%i.log">
+            <PatternLayout pattern="%-5p %d [%t] %c: %m%n" />
+            <SizeBasedTriggeringPolicy size="10 MB" />
+            <DefaultRolloverStrategy max="10"/>
+        </RollingFile>
+
+        <!-- Create the queue sqs-appender-sample in awsRegion before starting.
+             TRUNCATE cuts a message over maxMessageBytes down to that size and sends it.
+             Change largeMessageMode to DISCARD, FIFO, EXTENDED, or S3 to try the other paths.
+             EXTENDED and S3 also need s3BucketName. FIFO also needs a queue whose name ends in .fifo. -->
+        <SQS name="SQS"
+            queueName="sqs-appender-sample"
+            awsRegion="us-east-1"
+            awsAccessKey="${sys:amazon.sqs.access.key}"
+            awsSecretKey="${sys:amazon.sqs.secret.key}"
+            maxMessageBytes="1000000"
+            largeMessageMode="TRUNCATE"
+            maxBatchSize="10"
+            maxBatchOpenMs="500"
+            maxInflightOutboundBatches="5">
+            <JSONLayout compact="true" eventEol="true" properties="true" propertiesAsList="true" stacktraceAsString="true" includeTimeMillis="true">
+            </JSONLayout>
+        </SQS>
+    </Appenders>
+    <Loggers>
+        <AsyncLogger name="org.mule.runtime.core.internal.processor.LoggerMessageProcessor" level="INFO"/>
+
+        <AsyncRoot level="INFO">
+            <AppenderRef ref="console" />
+            <AppenderRef ref="SQS" />
+            <AppenderRef ref="file" />
+        </AsyncRoot>
+    </Loggers>
+</Configuration>
