@@ -1,0 +1,12 @@
+{
+  "configs": [
+    "global.xml",
+    "sqs-test.xml"
+  ],
+  "secureProperties": [],
+  "redeploymentEnabled": true,
+  "name": "sqs-appender-sample",
+  "minMuleVersion": "4.9.0",
+  "requiredProduct": "MULE_EE",
+  "javaSpecificationVersions": ["17"]
+}

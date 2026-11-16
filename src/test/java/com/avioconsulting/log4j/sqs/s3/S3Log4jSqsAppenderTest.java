@@ -1,18 +1,17 @@
 package com.avioconsulting.log4j.sqs.s3;
 
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.model.S3Object;
 import com.avioconsulting.log4j.sqs.util.AppenderTestUtils;
 import com.avioconsulting.log4j.sqs.util.PropertiesProvider;
-import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.S3Object;
 
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 
 import static com.avioconsulting.log4j.sqs.util.PropertiesProvider.AWS_S3_BUCKET_NAME;
 import static org.junit.Assert.assertEquals;
@@ -25,43 +24,43 @@ public class S3Log4jSqsAppenderTest {
             "12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345" +
             "6789012345678901234567890123456789012345678901234567890END";
 
-    public static AmazonS3 awsS3Client;
+    public static S3Client awsS3Client;
     @Before
     public void setUpClass() {
         PropertiesProvider.readProperties();
         awsS3Client = AppenderTestUtils.getConnectionToAWSS3();
-        awsS3Client.createBucket(AWS_S3_BUCKET_NAME);
+        awsS3Client.createBucket(r -> r.bucket(AWS_S3_BUCKET_NAME));
 
     }
     @After
     public void tearDownClass() {
         AppenderTestUtils.deleteObjectsFromS3Bucket(awsS3Client,AWS_S3_BUCKET_NAME);
-        awsS3Client.deleteBucket(AWS_S3_BUCKET_NAME);
-        awsS3Client.shutdown();
+        awsS3Client.deleteBucket(r -> r.bucket(AWS_S3_BUCKET_NAME));
+        awsS3Client.close();
     }
 
     @Test
     public void test_logMessagesQuantity_in_s3() {
-        assertEquals(0, awsS3Client.listObjects(AWS_S3_BUCKET_NAME).getObjectSummaries().size());
+        assertEquals(0, listObjects().size());
         //Puts log messages using appender into
         logger.info(MESSAGE_TO_LOG);
         logger.info(MESSAGE_TO_LOG);
         logger.info(MESSAGE_TO_LOG);
-        assertEquals(3, awsS3Client.listObjects(AWS_S3_BUCKET_NAME).getObjectSummaries().size());
+        assertEquals(3, listObjects().size());
     }
 
     @Test
-    public void test_logMessageContent_in_s3() throws IOException {
-        assertEquals(0, awsS3Client.listObjects(AWS_S3_BUCKET_NAME).getObjectSummaries().size());
+    public void test_logMessageContent_in_s3() {
+        assertEquals(0, listObjects().size());
         logger.info(MESSAGE_TO_LOG);
-        S3Object s3Object = getLastObjectOfS3Bucket();
-        String logInS3Object = IOUtils.toString(s3Object.getObjectContent(), StandardCharsets.UTF_8);
+        String objectKey = listObjects().get(0).key();
+        String logInS3Object = awsS3Client.getObjectAsBytes(r -> r.bucket(AWS_S3_BUCKET_NAME).key(objectKey))
+                .asString(StandardCharsets.UTF_8);
         assertEquals(logInS3Object.trim(), "[INFO] - " + MESSAGE_TO_LOG);
     }
 
-    private S3Object getLastObjectOfS3Bucket() {
-        String objectKey = awsS3Client.listObjects(AWS_S3_BUCKET_NAME).getObjectSummaries().get(0).getKey();
-        return awsS3Client.getObject(AWS_S3_BUCKET_NAME, objectKey);
+    private List<S3Object> listObjects() {
+        return awsS3Client.listObjects(r -> r.bucket(AWS_S3_BUCKET_NAME)).contents();
     }
 
 }

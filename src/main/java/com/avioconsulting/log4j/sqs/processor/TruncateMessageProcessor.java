@@ -1,9 +1,9 @@
 package com.avioconsulting.log4j.sqs.processor;
 
-import com.amazonaws.services.sqs.model.SendMessageRequest;
 import com.avioconsulting.log4j.sqs.wrapper.MessageRequestWrapper;
-import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.status.StatusLogger;
+import software.amazon.awssdk.services.sqs.model.SendMessageRequest;
 
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
@@ -13,20 +13,21 @@ import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 
 /**
- * Truncates the incoming message if its length is larger than 256kb
+ * Truncates the incoming message to maxMessageBytes.
  *
  * @author francisco.rodriguez
  */
 public class TruncateMessageProcessor implements LogEventProcessor {
 
-    private static final Logger logger = LogManager.getLogger(TruncateMessageProcessor.class);
+    private static final Logger logger = StatusLogger.getLogger();
 
     @Override
     public MessageRequestWrapper process(ProcessorAttributes processorAttributes) {
         logger.debug("Sending TRUNCATED message");
-        SendMessageRequest sendMessageRequest = new SendMessageRequest();
-        sendMessageRequest.setMessageBody(truncateStringByByteLength(processorAttributes.getMessage(),
-                StandardCharsets.UTF_8.name(), processorAttributes.getMaxMessageSize()));
+        SendMessageRequest sendMessageRequest = SendMessageRequest.builder()
+                .messageBody(truncateStringByByteLength(processorAttributes.getMessage(),
+                        StandardCharsets.UTF_8.name(), processorAttributes.getMaxMessageSize()))
+                .build();
         MessageRequestWrapper messageRequestWrapper = new MessageRequestWrapper();
         messageRequestWrapper.setSendMessageRequest(Collections.singletonList(sendMessageRequest));
         return messageRequestWrapper;
@@ -50,4 +51,3 @@ public class TruncateMessageProcessor implements LogEventProcessor {
         return src.substring(0, pos);
     }
 }
-

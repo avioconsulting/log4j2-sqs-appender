@@ -1,9 +1,8 @@
 package com.avioconsulting.log4j.sqs.client;
 
-import com.amazonaws.auth.AWSStaticCredentialsProvider;
-import com.amazonaws.auth.BasicAWSCredentials;
-import com.amazonaws.regions.Region;
-import com.amazonaws.regions.Regions;
+import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
+import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
+import software.amazon.awssdk.regions.Region;
 
 public class ConnectorClientFactory {
 
@@ -19,18 +18,16 @@ public class ConnectorClientFactory {
                                                         String s3BucketName,
                                                         String endpointURL,
                                                         String largeMessageMode) {
-        AWSStaticCredentialsProvider credentialsProvider = new AWSStaticCredentialsProvider(
-                new BasicAWSCredentials(awsAccessKey, awsSecretKey));
-        Regions r = Regions.fromName(awsRegion);
-        Region region = Region.getRegion(r);
+        StaticCredentialsProvider credentialsProvider = StaticCredentialsProvider.create(
+                AwsBasicCredentials.create(awsAccessKey, awsSecretKey));
         ConnectorClientAttributes attributes = new ConnectorClientAttributes(credentialsProvider,
-                region,
+                Region.of(awsRegion),
                 maxBatchOpenMs,
                 maxBatchSize,
                 maxInflightOutboundBatches,
                 s3BucketName,
                 endpointURL);
 
-        return new ConnectorClient(attributes, largeMessageMode);
+        return new AwsConnectorClient(attributes, largeMessageMode);
     }
 }

@@ -1,13 +1,13 @@
 package com.avioconsulting.log4j.sqs.wrapper;
 
-import com.amazonaws.services.s3.model.PutObjectRequest;
-import com.amazonaws.services.sqs.model.SendMessageRequest;
+import software.amazon.awssdk.services.sqs.model.SendMessageRequest;
 
+import java.util.Collections;
 import java.util.List;
 
 public class MessageRequestWrapper {
-	private List<SendMessageRequest> sendMessageRequest;
-	private List<PutObjectRequest> putObjectRequest;
+	private List<SendMessageRequest> sendMessageRequest = Collections.emptyList();
+	private List<S3ObjectRequest> putObjectRequest = Collections.emptyList();
 
 
 	public List<SendMessageRequest> getSendMessageRequest() {
@@ -18,11 +18,11 @@ public class MessageRequestWrapper {
 		this.sendMessageRequest = sendMessageRequest;
 	}
 
-	public List<PutObjectRequest> getPutObjectRequest() {
+	public List<S3ObjectRequest> getPutObjectRequest() {
 		return putObjectRequest;
 	}
 
-	public void setPutObjectRequest(List<PutObjectRequest> putObjectRequest) {
+	public void setPutObjectRequest(List<S3ObjectRequest> putObjectRequest) {
 		this.putObjectRequest = putObjectRequest;
 	}
 }

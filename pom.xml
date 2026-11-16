@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.avioconsulting</groupId>
     <artifactId>log4j2-sqs-appender</artifactId>
-    <version>1.1.2-SNAPSHOT</version>
+    <version>1.2.0</version>
 
     <name>${project.groupId}:${project.artifactId}</name>
     <description>Log4j2 appender to allow publishing of log messages to Amazon SQS</description>
@@ -16,7 +16,8 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
-        <aws.sdk.version>1.12.234</aws.sdk.version>
+        <aws.sdk.version>2.57.8</aws.sdk.version>
+        <sqs.extended.client.version>2.1.3</sqs.extended.client.version>
         <log4j.version>2.17.2</log4j.version>
         <junit.version>4.13.2</junit.version>
         <commons.io.version>2.11.0</commons.io.version>
@@ -74,17 +75,31 @@
         <url>${repository.url}</url>
     </scm>
 
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>software.amazon.awssdk</groupId>
+                <artifactId>bom</artifactId>
+                <version>${aws.sdk.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
     <dependencies>
         <dependency>
-            <groupId>com.amazonaws</groupId>
-            <artifactId>aws-java-sdk-sqs</artifactId>
-            <version>${aws.sdk.version}</version>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>sqs</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>s3</artifactId>
         </dependency>
         <dependency>
             <groupId>com.amazonaws</groupId>
             <artifactId>amazon-sqs-java-extended-client-lib</artifactId>
-            <version>1.2.2</version>
-            <type>jar</type>
+            <version>${sqs.extended.client.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
@@ -132,7 +147,7 @@
                         <awsQueueName>normal-queue</awsQueueName>
                         <awsLargeMessageQueueName>largue-queue</awsLargeMessageQueueName>
                         <maxMessageBytes>256</maxMessageBytes>
-                        <awsEndpointURL>http://s3.localhost.localstack.cloud:4566</awsEndpointURL>
+                        <awsEndpointURL>http://127.0.0.1:4566</awsEndpointURL>
                     </systemPropertyVariables>
                     <includes>
                         <include>**/*Test.java</include>
@@ -160,7 +175,9 @@
                         <configuration>
                             <images>
                                 <image>
-                                    <name>localstack/localstack</name>
+                                    <!-- Pinned to the last LocalStack release that runs without a paid
+                                         LOCALSTACK_AUTH_TOKEN. Images from the 2026.x line require one. -->
+                                    <name>localstack/localstack:4.14.0</name>
                                     <alias>localstack</alias>
                                     <run>
                                         <env>
@@ -168,9 +185,10 @@
                                             <SERVICES>s3,sqs</SERVICES>
                                         </env>
                                         <wait>
-                                            <url>http://localhost:8080</url>
-                                            <time>30000</time>
-                                            <log>Ready.</log>
+                                            <http>
+                                                <url>http://localhost:4566/_localstack/health</url>
+                                            </http>
+                                            <time>60000</time>
                                         </wait>
                                         <ports>
                                             <port>4566:4566</port>
