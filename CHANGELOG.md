@@ -6,7 +6,7 @@ User-visible changes for the SQS appender. Dates are the release commits in this
 
 Existing `log4j2.xml` configurations work without changes.
 
-* Replaced the AWS SDK for Java 1.x with the AWS SDK for Java 2.x (SDK 2.57.8). The application now includes the SDK 2.x libraries, including Netty and Apache HttpClient 5.
+* Replaced the AWS SDK for Java 1.x with the AWS SDK for Java 2.x (SDK 2.59.2). The application now includes the SDK 2.x libraries, including Netty and Apache HttpClient 5.
 * Sends messages up to 1 MiB (1,048,576 bytes). In 1.1.0, a body larger than 256 KiB failed with `Failed to schedule request` because the SDK 1.x buffered client rejected it before the send.
 * The default `maxMessageBytes` is 1048576. In 1.1.0 it was 250000.
 * Messages of 256 KiB or smaller can share one `SendMessageBatch` call. A larger message, up to 1 MiB, is sent on its own with `SendMessage`. The 256 KiB value is a batching cutoff, not the SQS message limit.
