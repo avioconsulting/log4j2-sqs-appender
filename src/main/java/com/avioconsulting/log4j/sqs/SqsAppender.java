@@ -102,6 +102,70 @@ class SqsAppender extends AbstractAppender {
         @PluginBuilderAttribute
         private Boolean largeMessagesEnabled;
 
+        public B setAwsAccessKey(String awsAccessKey) {
+            this.awsAccessKey = awsAccessKey;
+            return asBuilder();
+        }
+
+        public B setAwsSecretKey(String awsSecretKey) {
+            this.awsSecretKey = awsSecretKey;
+            return asBuilder();
+        }
+
+        public B setAwsRegion(String awsRegion) {
+            this.awsRegion = awsRegion;
+            return asBuilder();
+        }
+
+        public B setQueueName(String queueName) {
+            this.queueName = queueName;
+            return asBuilder();
+        }
+
+        public B setLargeMessageQueueName(String largeMessageQueueName) {
+            this.largeMessageQueueName = largeMessageQueueName;
+            return asBuilder();
+        }
+
+        public B setMaxBatchOpenMs(Integer maxBatchOpenMs) {
+            this.maxBatchOpenMs = maxBatchOpenMs;
+            return asBuilder();
+        }
+
+        public B setMaxBatchSize(Integer maxBatchSize) {
+            this.maxBatchSize = maxBatchSize;
+            return asBuilder();
+        }
+
+        public B setMaxInflightOutboundBatches(Integer maxInflightOutboundBatches) {
+            this.maxInflightOutboundBatches = maxInflightOutboundBatches;
+            return asBuilder();
+        }
+
+        public B setMaxMessageBytes(Integer maxMessageBytes) {
+            this.maxMessageBytes = maxMessageBytes;
+            return asBuilder();
+        }
+
+        public B setLargeMessageMode(String largeMessageMode) {
+            this.largeMessageMode = largeMessageMode;
+            return asBuilder();
+        }
+
+        public B setS3BucketName(String s3BucketName) {
+            this.s3BucketName = s3BucketName;
+            return asBuilder();
+        }
+
+        public B setEndpointURL(String endpointURL) {
+            this.endpointURL = endpointURL;
+            return asBuilder();
+        }
+
+        public B setLargeMessagesEnabled(Boolean largeMessagesEnabled) {
+            this.largeMessagesEnabled = largeMessagesEnabled;
+            return asBuilder();
+        }
 
         @Override
         public SqsAppender build() {

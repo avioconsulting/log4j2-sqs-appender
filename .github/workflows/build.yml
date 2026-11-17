@@ -16,8 +16,36 @@ jobs:
     with:
       java-version: '17'
 
-  Release:
+  Log4j-compatibility:
     needs: Build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      matrix:
+        # The shared build already tests the packaged JAR on 2.26.1.
+        log4j: ['2.20.0', '2.25.5']
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+      - uses: actions/download-artifact@v8
+        with:
+          name: build-artifacts
+      - name: Test the shared build's JAR with Log4j ${{ matrix.log4j }}
+        run: |
+          # Give javac the packaged classes to compile only the test sources.
+          mkdir -p target/classes
+          (cd target/classes && jar xf ../log4j2-sqs-appender-*.jar)
+          ./mvnw -B -ntp -Dlog4j.version=${{ matrix.log4j }} -DfailIfNoTests=true \
+            resources:testResources compiler:testCompile docker:start@docker-start \
+            failsafe:integration-test docker:stop@docker-stop failsafe:verify
+
+  Release:
+    needs: [Build, Log4j-compatibility]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     permissions:
       contents: write

@@ -10,6 +10,9 @@ Version history is in [CHANGELOG.md](CHANGELOG.md).
 
 Pull requests build and test on JDK 17, including the Docker/LocalStack integration tests.
 The compiler targets Java 8 bytecode and JDK APIs with `--release 8`.
+The appender is compiled against Log4j 2.26.1. CI runs the integration tests against
+the same packaged JAR with Log4j 2.20.0, 2.25.5, and 2.26.1 to cover representative
+Mule 4.6, 4.9, and 4.12 runtime dependencies.
 Pushes to `main` use AVIO's shared Maven release workflow on Java 17. Maven signs and
 publishes to the Sonatype Central Portal; JReleaser handles the GitHub release. For a
 non-SNAPSHOT version, the post-release workflow opens a PR for the next patch snapshot.
