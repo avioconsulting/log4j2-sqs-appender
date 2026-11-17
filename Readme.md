@@ -8,7 +8,8 @@ Version history is in [CHANGELOG.md](CHANGELOG.md).
 
 ## Publishing
 
-Pull requests run `verify` on Java 8, including the Docker/LocalStack integration tests.
+Pull requests build and test on JDK 17, including the Docker/LocalStack integration tests.
+The compiler targets Java 8 bytecode and JDK APIs with `--release 8`.
 Pushes to `main` use AVIO's shared Maven release workflow on Java 17. Maven signs and
 publishes to the Sonatype Central Portal; JReleaser handles the GitHub release. For a
 non-SNAPSHOT version, the post-release workflow opens a PR for the next patch snapshot.
@@ -30,7 +31,7 @@ How?
 
 * Build this application using the following command.
 
-```mvn clean install```
+```./mvnw clean install```
 
 Use this dependency in your Java/Mule Applications
 
