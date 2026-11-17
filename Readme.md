@@ -6,6 +6,18 @@ specified Amazon SQS Queue.
 The appender uses the AWS SDK for Java 2.x and supports SQS messages up to 1 MiB (1,048,576 bytes).
 Version history is in [CHANGELOG.md](CHANGELOG.md).
 
+## Publishing
+
+Pull requests run `verify` on Java 8, including the Docker/LocalStack integration tests.
+Pushes to `main` use AVIO's shared Maven release workflow on Java 17. Maven signs and
+publishes to the Sonatype Central Portal; JReleaser handles the GitHub release. For a
+non-SNAPSHOT version, the post-release workflow opens a PR for the next patch snapshot.
+
+Grant this repository access to the organization Actions secrets `MAVEN_PUBLISH_USERNAME`,
+`MAVEN_PUBLISH_PASSWORD`, `MAVEN_GPG_PRIVATE_KEY`, `MAVEN_GPG_PASSPHRASE`,
+`JRELEASER_GPG_PUBLIC_KEY`, `JRELEASER_GPG_SECRET_KEY`, and `JRELEASER_GPG_PASSPHRASE`.
+Repository secrets take precedence over organization secrets with the same names.
+
 Why?
 ====================
 
@@ -236,4 +248,3 @@ Mule sample
 Each message ends with `###SQS-APPENDER-TEST-END###`. If that marker is present in the stored event, the full message was sent. The sample sets `largeMessageMode="TRUNCATE"`, so the 1.1 MB event is cut to `maxMessageBytes` and the marker is not present. Change `largeMessageMode` in `samples/mule-sqs-appender-test/src/main/resources/log4j2.xml` to try `DISCARD`, `FIFO`, `EXTENDED`, or `S3`.
 
 The sample is not part of this repository's Maven build. Open it in Anypoint Studio. See `samples/mule-sqs-appender-test/README.md`.
-
