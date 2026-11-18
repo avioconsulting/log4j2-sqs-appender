@@ -18,6 +18,10 @@ Mule 4.6, 4.9, and 4.12 runtime dependencies.
 Pushes to `main` use AVIO's shared Maven release workflow on Java 17. Maven signs and
 publishes to the Sonatype Central Portal; JReleaser handles the GitHub release. For a
 non-SNAPSHOT version, the post-release workflow opens a PR for the next patch snapshot.
+The AVIO release bot uses `RELEASE_APP_ID` and `RELEASE_APP_PRIVATE_KEY` to open
+that PR. CI checks the entire diff: only an exact next-patch snapshot bump by
+the bot skips the PR build and Log4j matrix. Other PR changes and merges to
+`main` get the full build. `PR-validation` reports the result of either PR path.
 
 Grant this repository access to the organization Actions secrets `MAVEN_PUBLISH_USERNAME`,
 `MAVEN_PUBLISH_PASSWORD`, `MAVEN_GPG_PRIVATE_KEY`, `MAVEN_GPG_PASSPHRASE`,
