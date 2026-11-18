@@ -9,6 +9,8 @@ Version history is in [CHANGELOG.md](CHANGELOG.md).
 ## Publishing
 
 Pull requests build and test on JDK 17, including the Docker/LocalStack integration tests.
+The shared publish step passes `-DskipITs=true`, which skips both Failsafe tests
+and their LocalStack container after the build has verified the artifact.
 The compiler targets Java 8 bytecode and JDK APIs with `--release 8`.
 The appender is compiled against Log4j 2.26.1. CI runs the integration tests against
 the same packaged JAR with Log4j 2.20.0, 2.25.5, and 2.26.1 to cover representative
