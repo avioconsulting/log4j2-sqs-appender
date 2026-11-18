@@ -49,6 +49,18 @@ public class SqsManager extends AbstractManager {
     private static final Logger oversizedLog = LogManager.getLogger(SqsManager.class);
     static final String OVERSIZED_LOGGER_NAME = SqsManager.class.getName();
 
+    /**
+     * Configures delivery for one appender.
+     * @param configuration owning Log4j configuration
+     * @param loggerContext context in which the manager runs
+     * @param name manager name
+     * @param queueName destination for ordinary SQS messages
+     * @param largeMessageQueueName FIFO destination; null selects {@code queueName + ".fifo"}
+     * @param maxMessageBytes body size threshold in UTF-8 bytes; null or nonpositive uses the SQS maximum
+     * @param largeMessageMode strategy to use above the threshold; defaults to truncation
+     * @param bucketName bucket for S3-backed delivery modes
+     * @param connectorClient client responsible for AWS dispatch and shutdown
+     */
     protected SqsManager(final Configuration configuration,
                          final LoggerContext loggerContext,
                          final String name,
@@ -68,6 +80,11 @@ public class SqsManager extends AbstractManager {
         this.connectorClient = connectorClient;
     }
 
+    /**
+     * Formats an event and routes it according to its UTF-8 byte length.
+     * @param layout layout used to serialize the event
+     * @param event log event to deliver
+     */
     public void send(final Layout<?> layout, final LogEvent event) {
         String message = new String(layout.toByteArray(event), StandardCharsets.UTF_8);
         int messageLength = message.getBytes(StandardCharsets.UTF_8).length;

@@ -66,6 +66,11 @@ public class AwsConnectorClient implements ConnectorClient {
     private final AtomicLong lastErrorReportMs = new AtomicLong();
     private final AtomicLong suppressedErrors = new AtomicLong();
 
+    /**
+     * Configures a connector without opening network clients.
+     * @param attributes AWS endpoint, authentication and batching settings
+     * @param largeMessageMode strategy determining whether S3 or the SQS extended client is needed
+     */
     public AwsConnectorClient(ConnectorClientAttributes attributes, String largeMessageMode) {
         this.attributes = attributes;
         this.largeMessageMode = largeMessageMode;

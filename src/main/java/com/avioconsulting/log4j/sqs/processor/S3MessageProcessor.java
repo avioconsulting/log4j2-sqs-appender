@@ -15,6 +15,7 @@ import java.util.UUID;
  */
 public class S3MessageProcessor implements LogEventProcessor {
 
+    /** Content type assigned to log event objects uploaded to S3. */
     public static final String APPLICATION_TXT = "application/txt";
     private static final Logger logger = StatusLogger.getLogger();
 
