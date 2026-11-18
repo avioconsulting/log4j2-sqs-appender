@@ -1,0 +1,23 @@
+project:
+  name: log4j2-sqs-appender
+  description: Log4j2 appender for Amazon SQS
+  authors:
+    - AVIO Consulting
+  license: BSD-2-Clause
+  java:
+    groupId: com.avioconsulting
+    version: 8
+
+release:
+  github:
+    owner: avioconsulting
+    sign: true
+    milestone:
+      close: false
+    changelog:
+      skipMergeCommits: true
+
+signing:
+  active: ALWAYS
+  armored: true
+  mode: MEMORY

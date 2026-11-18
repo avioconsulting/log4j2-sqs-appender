@@ -1,89 +1,70 @@
-name: Maven Build and Deploy
+name: Maven Build and Release
 
 on:
   push:
-    branches:
-      - 'main'
-      - 'feature/**'
+    branches: [main, 'feature/**', 'feat/**', 'fix/**', 'chore/**']
   pull_request:
-    branches:
-      - 'main'
+    branches: [main]
 
 jobs:
   Build:
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
+    uses: avioconsulting/shared-workflows/.github/workflows/maven-build.yml@main
+    with:
+      java-version: '17'
+
+  Log4j-compatibility:
+    needs: Build
     runs-on: ubuntu-latest
-
+    permissions:
+      contents: read
+    strategy:
+      matrix:
+        # The shared build already tests the packaged JAR on 2.26.1.
+        log4j: ['2.20.0', '2.25.5']
     steps:
-      - uses: actions/checkout@v2
-        with:
-          submodules: 'recursive'
-
-      - name: Set up JDK 1.8
-        uses: actions/setup-java@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
-          java-version: 8
+          java-version: '17'
           cache: maven
-          server-id: ossrh
-          server-username: OSSRH_USERNAME
-          server-password: OSSRH_PASSWORD
-          gpg-private-key: ${{ secrets.MAVEN_GPG_PRIVATE_KEY }}
-          gpg-passphrase:  MAVEN_GPG_PASSPHRASE
-
-      - name: Set Version
-        id: set-version
-        run: echo "version=$(./mvnw -q -Dexec.executable=echo -Dexec.args='${project.version}' --non-recursive exec:exec)" >> "$GITHUB_OUTPUT"
-
-      - name: Print Version
-        run: echo "Version ${{ steps.set-version.outputs.version }}"
-
-      - name: Compile
-        run: ./mvnw compile
-
-      - name: Verify
-        run: ./mvnw --batch-mode verify
-
-      - name: Publish Unit Test Results
-        uses: EnricoMi/publish-unit-test-result-action@v1
-        if: always()
+      - uses: actions/download-artifact@v8
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          files: ./**/*-reports/TEST-*.xml
-
-      - name: Publish to Maven Central
-        id: publish-to-maven-central
-        if: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main'}}
-        run: ./mvnw clean deploy -Drelease=true
-        env:
-          OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
-          OSSRH_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
-          MAVEN_GPG_PASSPHRASE: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
-
-      - name: Perform Release
-        if: ${{ !contains(steps.set-version.outputs.version, 'SNAPSHOT') && github.event_name != 'pull_request' && github.ref == 'refs/heads/main'}}
-        run: echo "Releasing version ${{ steps.set-version.outputs.version }}"
-
-      - name: Perform Release
-        if: ${{ !contains(steps.set-version.outputs.version, 'SNAPSHOT') && github.event_name != 'pull_request' && github.ref == 'refs/heads/main'}}
-        env:
-          GIT_USER: ${{ secrets.GIT_USER }}
-          GIT_PASSWORD: ${{ secrets.GIT_TOKEN }}
+          name: build-artifacts
+      - name: Test the shared build's JAR with Log4j ${{ matrix.log4j }}
         run: |
-          git config --local credential.helper "!f() { echo username=\\GIT_USER; echo password=\\$GIT_PASSWORD; }; f"
-          git config --global user.email "${{ secrets.GIT_EMAIL }}"
-          git config --global user.name "${{ secrets.GIT_USER }}"
-          git tag -a v${{ steps.set-version.outputs.version }} -m "Version ${{ steps.set-version.outputs.version }}"
-          ./mvnw clean build-helper:parse-version versions:set -DnewVersion=\${parsedVersion.majorVersion}.\${parsedVersion.minorVersion}.\${parsedVersion.nextIncrementalVersion}-SNAPSHOT -DprocessAllModules versions:commit
-          find . -name 'pom.xml' | xargs git add
-          git commit -m "Incrementing to next SNAPSHOT patch version"
-          git push --follow-tags
+          # Give javac the packaged classes to compile only the test sources.
+          mkdir -p target/classes
+          (cd target/classes && jar xf ../log4j2-sqs-appender-*.jar)
+          ./mvnw -B -ntp -Dlog4j.version=${{ matrix.log4j }} -DfailIfNoTests=true \
+            resources:testResources compiler:testCompile docker:start@docker-start \
+            failsafe:integration-test docker:stop@docker-stop failsafe:verify
 
-      - name: Add Release Note and Create Github Release
-        if: ${{ !contains(steps.set-version.outputs.version, 'SNAPSHOT') && github.event_name != 'pull_request' && github.ref == 'refs/heads/main'}}
-        uses: release-drafter/release-drafter@v5
-        with:
-          version: ${{ steps.set-version.outputs.version }}
-          tag: v${{ steps.set-version.outputs.version }}
-          publish: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  Release:
+    needs: [Build, Log4j-compatibility]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: write
+    uses: avioconsulting/shared-workflows/.github/workflows/maven-release.yml@main
+    secrets: inherit
+    with:
+      app-version: ${{ needs.Build.outputs.app-version }}
+      publish-maven-central: true
+      java-distribution: temurin
+      java-version: '17'
+      maven-args: -Ddocker.skip=true
+
+  Post-Release:
+    needs: [Build, Release]
+    permissions:
+      contents: write
+      pull-requests: write
+    uses: avioconsulting/shared-workflows/.github/workflows/maven-post-release.yml@main
+    with:
+      app-version: ${{ needs.Build.outputs.app-version }}
+      java-distribution: temurin
+      java-version: '17'

@@ -14,14 +14,13 @@
         <repository.url>git@github.com:${project.github.repository}.git</repository.url>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <maven.compiler.source>1.8</maven.compiler.source>
-        <maven.compiler.target>1.8</maven.compiler.target>
-        <aws.sdk.version>2.57.8</aws.sdk.version>
+        <maven.compiler.release>8</maven.compiler.release>
+        <aws.sdk.version>2.59.2</aws.sdk.version>
         <sqs.extended.client.version>2.1.3</sqs.extended.client.version>
-        <log4j.version>2.17.2</log4j.version>
+        <log4j.version>2.26.1</log4j.version>
         <junit.version>4.13.2</junit.version>
-        <commons.io.version>2.11.0</commons.io.version>
-        <nexus.url>https://oss.sonatype.org</nexus.url>
+        <commons.io.version>2.22.0</commons.io.version>
+        <surefire.version>3.6.1</surefire.version>
         <docker.maven.plugin.version>0.49.0</docker.maven.plugin.version>
     </properties>
 
@@ -122,6 +121,7 @@
             <groupId>com.googlecode.json-simple</groupId>
             <artifactId>json-simple</artifactId>
             <version>1.1.1</version>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 
@@ -129,7 +129,7 @@
         <plugins>
             <plugin>
                 <artifactId>maven-failsafe-plugin</artifactId>
-                <version>3.1.2</version>
+                <version>${surefire.version}</version>
                 <executions>
                     <execution>
                         <goals>
@@ -139,6 +139,9 @@
                     </execution>
                 </executions>
                 <configuration>
+                    <!-- The shared Maven workflow collects test XML from surefire-reports. -->
+                    <reportsDirectory>${project.build.directory}/surefire-reports</reportsDirectory>
+                    <classesDirectory>${project.build.directory}/${project.build.finalName}.jar</classesDirectory>
                     <systemPropertyVariables>
                         <awsAccessKey>ABCDaE</awsAccessKey>
                         <awsSecretKey>ABCDaE</awsSecretKey>
@@ -156,7 +159,7 @@
             </plugin>
             <plugin>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <version>2.12.3</version>
+                <version>${surefire.version}</version>
                 <configuration>
                     <skip>true</skip>
                 </configuration>
@@ -213,22 +216,17 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-source-plugin</artifactId>
-                    <version>3.2.1</version>
+                    <version>3.4.0</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-javadoc-plugin</artifactId>
-                    <version>3.2.0</version>
+                    <version>3.12.0</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-gpg-plugin</artifactId>
-                    <version>1.6</version>
-                </plugin>
-                <plugin>
-                    <groupId>org.sonatype.plugins</groupId>
-                    <artifactId>nexus-staging-maven-plugin</artifactId>
-                    <version>1.6.8</version>
+                    <version>3.2.8</version>
                 </plugin>
             </plugins>
         </pluginManagement>
@@ -243,17 +241,6 @@
                     <value>true</value>
                 </property>
             </activation>
-
-            <distributionManagement>
-                <repository>
-                    <id>ossrh</id>
-                    <url>${nexus.url}/service/local/staging/deploy/maven2/</url>
-                </repository>
-                <snapshotRepository>
-                    <id>ossrh</id>
-                    <url>${nexus.url}/content/repositories/snapshots</url>
-                </snapshotRepository>
-            </distributionManagement>
 
             <build>
                 <plugins>
@@ -288,13 +275,14 @@
                         </executions>
                     </plugin>
                     <plugin>
-                        <groupId>org.sonatype.plugins</groupId>
-                        <artifactId>nexus-staging-maven-plugin</artifactId>
+                        <groupId>org.sonatype.central</groupId>
+                        <artifactId>central-publishing-maven-plugin</artifactId>
+                        <version>0.12.0</version>
                         <extensions>true</extensions>
                         <configuration>
-                            <serverId>ossrh</serverId>
-                            <nexusUrl>${nexus.url}</nexusUrl>
-                            <autoReleaseAfterClose>true</autoReleaseAfterClose>
+                            <publishingServerId>maven-publish</publishingServerId>
+                            <autoPublish>true</autoPublish>
+                            <waitUntil>published</waitUntil>
                         </configuration>
                     </plugin>
                 </plugins>
@@ -316,7 +304,6 @@
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-gpg-plugin</artifactId>
-                        <version>1.6</version>
                         <executions>
                             <execution>
                                 <goals>
@@ -325,13 +312,6 @@
                                 <phase>verify</phase>
                             </execution>
                         </executions>
-                        <configuration>
-                            <!-- Prevent gpg from using pinentry programs -->
-                            <gpgArguments>
-                                <arg>--pinentry-mode</arg>
-                                <arg>loopback</arg>
-                            </gpgArguments>
-                        </configuration>
                     </plugin>
                 </plugins>
             </build>
