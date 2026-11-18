@@ -56,7 +56,6 @@ jobs:
       publish-maven-central: true
       java-distribution: temurin
       java-version: '17'
-      maven-args: -Ddocker.skip=true
 
   Post-Release:
     needs: [Build, Release]
