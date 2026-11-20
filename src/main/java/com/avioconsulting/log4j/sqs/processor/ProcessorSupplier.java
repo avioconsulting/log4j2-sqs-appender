@@ -26,6 +26,11 @@ public class ProcessorSupplier {
         processorsMap = Collections.unmodifiableMap(aMap);
     }
 
+    /**
+     * Selects the strategy by its case-sensitive configuration name.
+     * @param type processor type name, or null for truncation
+     * @return a new processor; unrecognized names also select truncation
+     */
     public static LogEventProcessor selectProcessor(String type) {
         if (!processorsMap.containsKey(type)) {
             return processorsMap.get(ProcessorType.TRUNCATE.name()).get();

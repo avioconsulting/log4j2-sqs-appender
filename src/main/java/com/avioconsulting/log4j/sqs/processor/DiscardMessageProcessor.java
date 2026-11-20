@@ -13,6 +13,7 @@ import java.util.Collections;
  */
 public class DiscardMessageProcessor implements LogEventProcessor {
 
+    /** Prefix of the replacement message, followed by the configured byte limit. */
     public static final String DISCARD_MESSAGE = "Can't display log message. Message max size exceeded. max size:";
     private static final Logger logger = StatusLogger.getLogger();
 

@@ -56,6 +56,9 @@ public class FifoMessageProcessor implements LogEventProcessor {
     /**
      * Bytes of message text in each part, so the part plus its header fits in maxMessageBytes
      * (and in the SQS limit). A queue whose MaximumMessageSize equals maxMessageBytes accepts every part.
+     * @param maxMessageBytes configured part limit including the header; null or nonpositive uses the SQS maximum
+     * @return available UTF-8 payload bytes after reserving header space
+     * @throws IllegalArgumentException if the limit cannot hold the header and a four-byte character
      */
     public static int partSize(Integer maxMessageBytes) {
         int limit = maxMessageBytes == null || maxMessageBytes <= 0
